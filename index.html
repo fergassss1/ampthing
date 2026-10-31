@@ -54,8 +54,8 @@
 <body class="min-h-screen flex flex-col antialiased selection:bg-rose-500 selection:text-white">
 
   <!-- Header -->
-  <header class="border-b border-white/10 bg-black/40 backdrop-blur-md sticky top-0 z-40 px-4 py-3">
-    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+  <header class="border-b border-white/10 bg-black/80 backdrop-blur-md sticky top-0 z-50 px-4 py-3">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
       <div class="flex items-center gap-3">
         <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-rose-500 to-red-600 flex items-center justify-center shadow-lg shadow-rose-500/20">
           <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -65,10 +65,10 @@
         <h1 class="text-xl font-bold tracking-tight text-white">AMP Metadata Explorer</h1>
       </div>
 
-      <div class="flex items-center gap-3">
-        <button id="open-token-btn" class="text-xs px-3 py-1.5 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 transition flex items-center gap-2">
+      <div>
+        <button id="open-token-btn" class="cursor-pointer px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 transition flex items-center gap-2 text-xs font-medium text-white shadow-md">
           <span id="token-indicator" class="w-2 h-2 rounded-full bg-red-500"></span>
-          <span class="font-medium text-gray-300">Developer Token</span>
+          <span>Developer Token</span>
         </button>
       </div>
     </div>
