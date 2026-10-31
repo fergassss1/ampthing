@@ -55,7 +55,7 @@
 
   <!-- Header -->
   <header class="border-b border-white/10 bg-black/80 backdrop-blur-md sticky top-0 z-50 px-4 py-3">
-    <div class="max-w-7xl mx-auto flex items-center justify-between">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
       <div class="flex items-center gap-3">
         <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-rose-500 to-red-600 flex items-center justify-center shadow-lg shadow-rose-500/20">
           <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -67,11 +67,12 @@
 
       <div>
         <button 
-  id="open-token-btn" 
-  type="button"
-  class="fixed top-3 right-4 z-[9999] pointer-events-auto cursor-pointer px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-medium text-xs shadow-lg flex items-center gap-2">
-  <span id="token-indicator" class="w-2 h-2 rounded-full bg-red-500"></span>
-  <span>Developer Token</span>
+          id="open-token-btn" 
+          type="button" 
+          class="cursor-pointer px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 transition flex items-center gap-2 text-xs font-medium text-white shadow-md relative z-50 touch-manipulation"
+        >
+          <span id="token-indicator" class="w-2 h-2 rounded-full bg-red-500"></span>
+          <span>Developer Token</span>
         </button>
       </div>
     </div>
@@ -125,7 +126,7 @@
             />
             <button 
               id="search-btn" 
-              class="absolute right-1 top-1 bottom-1 px-4 bg-rose-600 hover:bg-rose-500 active:scale-95 text-white font-medium text-xs rounded-lg transition flex items-center gap-1.5"
+              class="absolute right-1 top-1 bottom-1 px-4 bg-rose-600 hover:bg-rose-500 active:scale-95 text-white font-medium text-xs rounded-lg transition flex items-center gap-1.5 touch-manipulation"
             >
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
               Search
@@ -141,7 +142,7 @@
       <div id="results-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4"></div>
     </section>
 
-    <!-- Detail View Modal / Section -->
+    <!-- Detail View Section -->
     <section id="detail-container" class="hidden bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-md space-y-6">
       <div class="flex flex-col lg:flex-row gap-6">
         
@@ -160,7 +161,7 @@
 
           <!-- Media Controls -->
           <div class="flex items-center justify-between gap-2">
-            <button id="toggle-motion-btn" class="hidden text-xs px-3 py-1.5 bg-rose-600/80 hover:bg-rose-600 text-white font-medium rounded-lg transition flex items-center gap-1.5">
+            <button id="toggle-motion-btn" class="hidden text-xs px-3 py-1.5 bg-rose-600/80 hover:bg-rose-600 text-white font-medium rounded-lg transition flex items-center gap-1.5 touch-manipulation">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
               <span>Toggle Motion Video</span>
             </button>
@@ -192,7 +193,7 @@
           <div class="space-y-2">
             <div class="flex items-center justify-between">
               <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Raw AMP JSON Response</span>
-              <button id="copy-json-btn" class="text-xs text-rose-400 hover:text-rose-300 font-medium transition">Copy JSON</button>
+              <button id="copy-json-btn" class="text-xs text-rose-400 hover:text-rose-300 font-medium transition touch-manipulation">Copy JSON</button>
             </div>
             <pre id="detail-json" class="bg-black/60 border border-white/10 rounded-xl p-4 text-xs font-mono text-emerald-400 overflow-x-auto max-h-96"></pre>
           </div>
@@ -210,7 +211,7 @@
       </p>
       <textarea id="token-input" rows="5" placeholder="Bearer eyJhbGciOi..." class="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-xs font-mono text-white focus:outline-none focus:border-rose-500 transition"></textarea>
       <div class="flex justify-end gap-2">
-        <button id="close-token-btn" class="px-4 py-2 bg-white/10 hover:bg-white/20 text-white font-medium text-xs rounded-xl transition">Save & Close</button>
+        <button id="close-token-btn" class="px-4 py-2 bg-white/10 hover:bg-white/20 text-white font-medium text-xs rounded-xl transition touch-manipulation">Save & Close</button>
       </div>
     </div>
   </div>
@@ -227,7 +228,6 @@
     let hlsInstance = null;
 
     const tokenModal = document.getElementById('token-modal');
-    const openTokenBtn = document.getElementById('open-token-btn');
     const closeTokenBtn = document.getElementById('close-token-btn');
     const tokenInput = document.getElementById('token-input');
     const tokenIndicator = document.getElementById('token-indicator');
@@ -265,7 +265,14 @@
       }
     }
 
-    openTokenBtn.addEventListener('click', () => tokenModal.classList.remove('hidden'));
+    // Global click/touch event delegation to reliably catch touch events on mobile
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('#open-token-btn')) {
+        e.preventDefault();
+        tokenModal.classList.remove('hidden');
+      }
+    });
+
     closeTokenBtn.addEventListener('click', () => {
       currentToken = tokenInput.value.trim();
       localStorage.setItem('amp_developer_token', currentToken);
@@ -359,7 +366,7 @@
         const subtitle = attributes.artistName || attributes.curatorName || '';
 
         return `
-          <div data-id="${item.id}" class="search-card bg-white/5 border border-white/10 hover:border-rose-500/50 rounded-xl p-3 cursor-pointer transition transform hover:-translate-y-1 flex flex-col gap-2">
+          <div data-id="${item.id}" class="search-card bg-white/5 border border-white/10 hover:border-rose-500/50 rounded-xl p-3 cursor-pointer transition transform hover:-translate-y-1 flex flex-col gap-2 touch-manipulation">
             <div class="aspect-square bg-black/50 rounded-lg overflow-hidden relative">
               ${imgUrl ? `<img src="${imgUrl}" alt="${title}" class="w-full h-full object-cover" />` : '<div class="w-full h-full flex items-center justify-center text-xs text-gray-600">No Art</div>'}
             </div>
@@ -427,4 +434,88 @@
     }
 
     function renderDetail(item) {
-      detailContainer.classList.
+      detailContainer.classList.remove('hidden');
+      detailContainer.scrollIntoView({ behavior: 'smooth' });
+
+      const attr = item.attributes || {};
+      const artwork = attr.artwork;
+      const staticArtUrl = artwork ? formatArtworkUrl(artwork.url, 4000, 4000) : '';
+
+      detailArtwork.src = staticArtUrl;
+      detailArtwork.classList.remove('hidden');
+      detailVideo.classList.add('hidden');
+      
+      downloadArtBtn.href = staticArtUrl;
+
+      detailTitle.innerText = attr.name || 'Untitled';
+      detailSubtitle.innerText = attr.artistName || attr.curatorName || '';
+      detailMeta.innerText = [
+        attr.releaseDate,
+        attr.genreNames?.join(', '),
+        attr.recordLabel
+      ].filter(Boolean).join(' • ');
+
+      detailJson.innerText = JSON.stringify(item, null, 2);
+      buildTraitBadges(attr.audioTraits || []);
+
+      if (attr.previews && attr.previews[0]?.url) {
+        audioPlayerContainer.classList.remove('hidden');
+        detailAudio.src = attr.previews[0].url;
+      } else {
+        audioPlayerContainer.classList.add('hidden');
+        detailAudio.src = '';
+      }
+
+      currentMotionUrl = '';
+      const editorialVideo = item.relationships?.editorialVideo?.data?.[0]?.attributes
+        || attr.editorialVideo?.motionDetailSquare
+        || attr.editorialVideo?.motionSquare;
+
+      if (editorialVideo) {
+        currentMotionUrl = editorialVideo.video || editorialVideo.hlsUrl || '';
+      }
+
+      if (currentMotionUrl) {
+        toggleMotionBtn.classList.remove('hidden');
+      } else {
+        toggleMotionBtn.classList.add('hidden');
+      }
+    }
+
+    toggleMotionBtn.addEventListener('click', () => {
+      if (!currentMotionUrl) return;
+
+      if (detailVideo.classList.contains('hidden')) {
+        detailArtwork.classList.add('hidden');
+        detailVideo.classList.remove('hidden');
+
+        if (currentMotionUrl.endsWith('.m3u8')) {
+          if (Hls.isSupported()) {
+            if (hlsInstance) hlsInstance.destroy();
+            hlsInstance = new Hls();
+            hlsInstance.loadSource(currentMotionUrl);
+            hlsInstance.attachMedia(detailVideo);
+          } else if (detailVideo.canPlayType('application/vnd.apple.mpegurl')) {
+            detailVideo.src = currentMotionUrl;
+          }
+        } else {
+          detailVideo.src = currentMotionUrl;
+        }
+        detailVideo.play();
+      } else {
+        detailVideo.pause();
+        detailVideo.classList.add('hidden');
+        detailArtwork.classList.remove('hidden');
+      }
+    });
+
+    copyJsonBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(detailJson.innerText);
+      copyJsonBtn.innerText = 'Copied!';
+      setTimeout(() => copyJsonBtn.innerText = 'Copy JSON', 2000);
+    });
+
+    updateTokenUI();
+  </script>
+</body>
+</html>
