@@ -1,521 +1,301 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Apple Music & AMP API Metadata Explorer</title>
-  
-  <!-- HLS.js for HLS video playback -->
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  
-  <style>
-    /* Custom Variable Font setup targeting your local repository asset */
-    @font-face {
-      font-family: 'SF Pro Variable';
-      src: url('/assets/font/SF-Pro.tff') format('truetype-variations'),
-           url('/assets/font/SF-Pro.tff') format('truetype');
-      font-weight: 100 900;
-      font-style: normal;
-      font-display: swap;
-    }
-
-    body {
-      font-family: 'SF Pro Variable', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background-color: #0d0d0f;
-      color: #f3f4f6;
-    }
-
-    /* Custom scrollbars */
-    ::-webkit-scrollbar {
-      width: 8px;
-      height: 8px;
-    }
-    ::-webkit-scrollbar-track {
-      background: #141418;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #2a2a32;
-      border-radius: 4px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: #3f3f4e;
-    }
-
-    .badge-icon {
-      display: inline-flex;
-      align-items: center;
-      height: 1.25rem;
-      object-fit: contain;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apple Music AMP Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #18181b; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #52525b; }
+        .glass-panel { background: rgba(24, 24, 27, 0.85); backdrop-filter: blur(12px); }
+    </style>
 </head>
-<body class="min-h-screen flex flex-col antialiased selection:bg-rose-500 selection:text-white">
+<body class="bg-zinc-950 text-zinc-100 min-h-screen flex flex-col font-sans antialiased selection:bg-rose-500 selection:text-white">
 
-  <!-- Header -->
-  <header class="border-b border-white/10 bg-black/80 backdrop-blur-md sticky top-0 z-50 px-4 py-3">
-    <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
-      <div class="flex items-center gap-3">
-        <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-rose-500 to-red-600 flex items-center justify-center shadow-lg shadow-rose-500/20">
-          <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
-          </svg>
-        </div>
-        <h1 class="text-xl font-bold tracking-tight text-white">AMP Metadata Explorer</h1>
-      </div>
+    <!-- Header -->
+    <header class="border-b border-zinc-800/80 glass-panel sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-rose-600 to-pink-500 flex items-center justify-center shadow-lg shadow-rose-950/50">
+                    <i class="fa-solid fa-music text-white text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold tracking-tight text-white leading-none text-lg">AMP Explorer</h1>
+                    <span class="text-[10px] font-mono text-zinc-400">Apple Music API Metadata Inspector</span>
+                </div>
+            </div>
 
-      <div>
-        <button 
-          id="open-token-btn" 
-          type="button" 
-          class="cursor-pointer px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 transition flex items-center gap-2 text-xs font-medium text-white shadow-md relative z-50 touch-manipulation"
-        >
-          <span id="token-indicator" class="w-2 h-2 rounded-full bg-red-500"></span>
-          <span>Developer Token</span>
-        </button>
-      </div>
-    </div>
-  </header>
-
-  <!-- Main Container -->
-  <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 space-y-6">
-
-    <!-- Search & Filters Toolbar -->
-    <section class="bg-white/5 border border-white/10 rounded-2xl p-4 md:p-6 backdrop-blur-sm space-y-4 shadow-xl">
-      <div class="flex flex-col md:flex-row gap-3">
-        
-        <!-- Storefront Selector -->
-        <div class="flex flex-col gap-1 md:w-48">
-          <label for="storefront-select" class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Storefront</label>
-          <select id="storefront-select" class="bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-rose-500 transition">
-            <option value="us" selected>🇺🇸 United States (US)</option>
-            <option value="kr">🇰🇷 South Korea (KR)</option>
-            <option value="cn">🇨🇳 China (CN)</option>
-            <option value="id">🇮🇩 Indonesia (ID)</option>
-            <option value="jp">🇯🇵 Japan (JP)</option>
-            <option value="gb">🇬🇧 United Kingdom (GB)</option>
-            <option value="de">🇩🇪 Germany (DE)</option>
-            <option value="fr">🇫🇷 France (FR)</option>
-            <option value="br">🇧🇷 Brazil (BR)</option>
-            <option value="mx">🇲🇽 Mexico (MX)</option>
-          </select>
-        </div>
-
-        <!-- Search Type -->
-        <div class="flex flex-col gap-1 md:w-40">
-          <label for="search-type" class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Type</label>
-          <select id="search-type" class="bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-rose-500 transition">
-            <option value="songs">Song</option>
-            <option value="albums">Album</option>
-            <option value="artists">Artist</option>
-            <option value="playlists">Playlist</option>
-            <option value="music-videos">Music Video</option>
-          </select>
-        </div>
-
-        <!-- Search Input -->
-        <div class="flex-1 flex flex-col gap-1">
-          <label for="search-input" class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Query or Apple Music URL</label>
-          <div class="relative flex-1">
-            <input 
-              type="text" 
-              id="search-input" 
-              placeholder="e.g. Fuck Off Fuck Off KiiiKiii or paste Apple Music URL..." 
-              class="w-full h-full bg-black/50 border border-white/10 rounded-xl pl-4 pr-24 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-rose-500 transition"
-            />
-            <button 
-              id="search-btn" 
-              class="absolute right-1 top-1 bottom-1 px-4 bg-rose-600 hover:bg-rose-500 active:scale-95 text-white font-medium text-xs rounded-lg transition flex items-center gap-1.5 touch-manipulation"
-            >
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-              Search
+            <button id="openConfigBtn" class="flex items-center gap-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white px-3.5 py-1.5 rounded-lg border border-zinc-800 text-xs font-medium transition shadow-sm">
+                <i class="fa-solid fa-gear text-zinc-400"></i>
+                <span>API Settings</span>
             </button>
-          </div>
         </div>
-      </div>
-    </section>
+    </header>
 
-    <!-- Results Grid -->
-    <section id="results-container" class="hidden space-y-4">
-      <h2 class="text-lg font-bold text-gray-200">Search Results</h2>
-      <div id="results-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4"></div>
-    </section>
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 flex-grow w-full space-y-6">
 
-    <!-- Detail View Section -->
-    <section id="detail-container" class="hidden bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-md space-y-6">
-      <div class="flex flex-col lg:flex-row gap-6">
-        
-        <!-- Artwork & Motion Media Preview Column -->
-        <div class="w-full lg:w-1/3 space-y-4">
-          <div class="relative aspect-square rounded-xl overflow-hidden bg-black/60 border border-white/10 group shadow-2xl">
-            <!-- Static Artwork Image -->
-            <img id="detail-artwork" src="" alt="Artwork" class="w-full h-full object-cover transition-opacity duration-300" />
-            
-            <!-- Video Player for Motion Artwork / Banners -->
-            <video id="detail-video" class="absolute inset-0 w-full h-full object-cover hidden" loop muted playsinline></video>
-            
-            <!-- Dynamic Badges Container Overlay -->
-            <div id="detail-badges" class="absolute top-3 left-3 flex flex-wrap gap-1.5 z-10"></div>
-          </div>
+        <!-- Search Controls -->
+        <div class="glass-panel border border-zinc-800/80 rounded-2xl p-4 shadow-xl space-y-3">
+            <div class="flex flex-col sm:flex-row gap-2.5">
+                <div class="relative flex-grow">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 text-sm"></i>
+                    <input type="text" id="searchInput" placeholder="Paste Apple Music URL or search term (e.g., Adele, 1440857781)..." 
+                           class="w-full bg-zinc-900/90 border border-zinc-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 transition">
+                </div>
+                
+                <div class="flex gap-2">
+                    <select id="typeSelect" class="bg-zinc-900/90 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm text-zinc-200 focus:outline-none focus:border-rose-500 transition cursor-pointer">
+                        <option value="songs">Songs</option>
+                        <option value="albums">Albums</option>
+                        <option value="artists">Artists</option>
+                        <option value="playlists">Playlists</option>
+                        <option value="music-videos">Videos</option>
+                    </select>
 
-          <!-- Media Controls -->
-          <div class="flex items-center justify-between gap-2">
-            <button id="toggle-motion-btn" class="hidden text-xs px-3 py-1.5 bg-rose-600/80 hover:bg-rose-600 text-white font-medium rounded-lg transition flex items-center gap-1.5 touch-manipulation">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-              <span>Toggle Motion Video</span>
-            </button>
-            <a id="download-art-btn" href="#" target="_blank" class="text-xs px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white font-medium rounded-lg transition flex items-center gap-1.5 ml-auto">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-              <span>Download 4K Static</span>
-            </a>
-          </div>
-
-          <!-- Audio Preview Player -->
-          <div id="audio-player-container" class="hidden space-y-2 bg-black/40 p-3 rounded-xl border border-white/5">
-            <div class="text-xs font-semibold text-gray-400">Audio Preview</div>
-            <audio id="detail-audio" controls class="w-full h-8"></audio>
-          </div>
-        </div>
-
-        <!-- Metadata & Raw Data Column -->
-        <div class="flex-1 space-y-4">
-          <div>
-            <h2 id="detail-title" class="text-2xl font-black text-white tracking-tight"></h2>
-            <p id="detail-subtitle" class="text-lg font-medium text-rose-400"></p>
-            <p id="detail-meta" class="text-xs text-gray-400 mt-1"></p>
-          </div>
-
-          <!-- Quality / Technical Traits Badges Display -->
-          <div class="flex items-center gap-3 py-2 border-y border-white/10" id="trait-badges-bar"></div>
-
-          <!-- JSON Response Viewer -->
-          <div class="space-y-2">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Raw AMP JSON Response</span>
-              <button id="copy-json-btn" class="text-xs text-rose-400 hover:text-rose-300 font-medium transition touch-manipulation">Copy JSON</button>
+                    <button id="searchBtn" class="bg-rose-600 hover:bg-rose-500 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition shadow-lg shadow-rose-950/40 flex items-center gap-2 flex-shrink-0">
+                        <span>Search</span>
+                        <i class="fa-solid fa-arrow-right text-xs"></i>
+                    </button>
+                </div>
             </div>
-            <pre id="detail-json" class="bg-black/60 border border-white/10 rounded-xl p-4 text-xs font-mono text-emerald-400 overflow-x-auto max-h-96"></pre>
-          </div>
         </div>
-      </div>
-    </section>
-  </main>
 
-  <!-- Developer Token Modal -->
-  <div id="token-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-gray-900 border border-white/10 rounded-2xl p-6 max-w-lg w-full space-y-4 shadow-2xl">
-      <h3 class="text-lg font-bold text-white">Apple Music Authorization Token</h3>
-      <p class="text-xs text-gray-400 leading-relaxed">
-        Paste your extracted Apple Music web authorization token or JWT below. It is saved locally in your browser's <code class="text-rose-400">localStorage</code>.
-      </p>
-      <textarea id="token-input" rows="5" placeholder="Bearer eyJhbGciOi..." class="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-xs font-mono text-white focus:outline-none focus:border-rose-500 transition"></textarea>
-      <div class="flex justify-end gap-2">
-        <button id="close-token-btn" class="px-4 py-2 bg-white/10 hover:bg-white/20 text-white font-medium text-xs rounded-xl transition touch-manipulation">Save & Close</button>
-      </div>
+        <!-- Status & Banner Alerts -->
+        <div id="statusMessage" class="hidden text-xs font-mono p-3.5 rounded-xl border flex items-center gap-3 transition"></div>
+
+        <!-- Content Split Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- Left: Results List -->
+            <section class="lg:col-span-5 space-y-3">
+                <div class="flex items-center justify-between px-1">
+                    <h2 class="text-xs font-bold uppercase tracking-wider text-zinc-400">Catalog Results</h2>
+                    <span id="resultsCount" class="text-[11px] font-mono text-zinc-500">0 items</span>
+                </div>
+                
+                <div id="resultsContainer" class="space-y-2.5 max-h-[70vh] overflow-y-auto pr-1 custom-scrollbar">
+                    <div class="text-center py-12 border border-dashed border-zinc-800 rounded-2xl">
+                        <i class="fa-solid fa-compact-disc text-3xl text-zinc-700 mb-2 animate-spin-slow"></i>
+                        <p class="text-xs text-zinc-500">Search for tracks, albums, or paste a link to inspect API payloads</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right: JSON Payload Inspector -->
+            <section class="lg:col-span-7 space-y-3">
+                <div class="flex items-center justify-between px-1">
+                    <h2 class="text-xs font-bold uppercase tracking-wider text-zinc-400">API Response Payload</h2>
+                    <button id="copyJsonBtn" class="text-xs text-zinc-400 hover:text-white flex items-center gap-1.5 bg-zinc-900 px-2.5 py-1 rounded border border-zinc-800 transition">
+                        <i class="fa-regular fa-copy"></i>
+                        <span>Copy Raw JSON</span>
+                    </button>
+                </div>
+
+                <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 font-mono text-xs overflow-x-auto max-h-[70vh] custom-scrollbar shadow-inner">
+                    <pre id="jsonViewer" class="text-rose-300/90 leading-relaxed"><code>// Raw API payload response will render here...</code></pre>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Config Modal -->
+    <div id="configModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl relative">
+            <div class="flex justify-between items-center border-b border-zinc-800 pb-3">
+                <h3 class="font-bold text-lg text-white">Proxy & Token Configuration</h3>
+                <button id="closeModalBtn" class="text-zinc-400 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-300 mb-1">Cloudflare Worker Proxy Domain</label>
+                    <input type="text" id="proxyUrlInput" value="https://amp.ejpoacc.workers.dev" 
+                           class="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-2.5 text-xs font-mono text-zinc-200 focus:outline-none focus:border-rose-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-300 mb-1">Apple Music Developer JWT Token</label>
+                    <textarea id="tokenInput" rows="5" placeholder="Bearer eyJhbGciOi..." 
+                              class="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-2.5 text-xs font-mono text-zinc-200 focus:outline-none focus:border-rose-500"></textarea>
+                    <p class="text-[11px] text-zinc-500 mt-1">Ensure the token includes the exact <code>Bearer </code> prefix.</p>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2.5 pt-2">
+                <button id="cancelModalBtn" class="px-4 py-2 rounded-xl text-xs font-medium text-zinc-300 hover:bg-zinc-800 border border-zinc-800">Cancel</button>
+                <button id="saveTokenBtn" class="px-5 py-2 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-950/50">Save Settings</button>
+            </div>
+        </div>
     </div>
-  </div>
 
-  <script>
-    const LOCAL_LOSSLESS_SVG = '/assets/badges/lossless.svg';
-    const LOCAL_DOLBY_SVG = '/assets/badges/dolby.svg';
-    
-    // Connected to your Cloudflare Worker Proxy
-    const WORKER_PROXY_URL = 'https://amp.ejpoacc.workers.dev';
+    <!-- Application Script -->
+    <script>
+        let storefront = "us";
 
-    let currentToken = localStorage.getItem('amp_developer_token') || '';
-    let currentMotionUrl = '';
-    let hlsInstance = null;
+        // DOM Elements
+        const searchInput = document.getElementById("searchInput");
+        const typeSelect = document.getElementById("typeSelect");
+        const searchBtn = document.getElementById("searchBtn");
+        const resultsContainer = document.getElementById("resultsContainer");
+        const resultsCount = document.getElementById("resultsCount");
+        const jsonViewer = document.getElementById("jsonViewer");
+        const statusMessage = document.getElementById("statusMessage");
+        const copyJsonBtn = document.getElementById("copyJsonBtn");
 
-    const tokenModal = document.getElementById('token-modal');
-    const closeTokenBtn = document.getElementById('close-token-btn');
-    const tokenInput = document.getElementById('token-input');
-    const tokenIndicator = document.getElementById('token-indicator');
+        const configModal = document.getElementById("configModal");
+        const openConfigBtn = document.getElementById("openConfigBtn");
+        const closeModalBtn = document.getElementById("closeModalBtn");
+        const cancelModalBtn = document.getElementById("cancelModalBtn");
+        const saveTokenBtn = document.getElementById("saveTokenBtn");
+        const tokenInput = document.getElementById("tokenInput");
+        const proxyUrlInput = document.getElementById("proxyUrlInput");
 
-    const searchBtn = document.getElementById('search-btn');
-    const searchInput = document.getElementById('search-input');
-    const searchType = document.getElementById('search-type');
-    const storefrontSelect = document.getElementById('storefront-select');
+        // Initialization
+        tokenInput.value = localStorage.getItem("amusic_token") || "";
+        proxyUrlInput.value = localStorage.getItem("amusic_proxy") || "https://amp.ejpoacc.workers.dev";
 
-    const resultsContainer = document.getElementById('results-container');
-    const resultsGrid = document.getElementById('results-grid');
+        // Modal Controls
+        const toggleModal = (show) => configModal.classList.toggle("hidden", !show);
+        openConfigBtn.onclick = () => toggleModal(true);
+        closeModalBtn.onclick = () => toggleModal(false);
+        cancelModalBtn.onclick = () => toggleModal(false);
 
-    const detailContainer = document.getElementById('detail-container');
-    const detailArtwork = document.getElementById('detail-artwork');
-    const detailVideo = document.getElementById('detail-video');
-    const detailTitle = document.getElementById('detail-title');
-    const detailSubtitle = document.getElementById('detail-subtitle');
-    const detailMeta = document.getElementById('detail-meta');
-    const detailJson = document.getElementById('detail-json');
-    const detailAudio = document.getElementById('detail-audio');
-    const audioPlayerContainer = document.getElementById('audio-player-container');
-    const downloadArtBtn = document.getElementById('download-art-btn');
-    const toggleMotionBtn = document.getElementById('toggle-motion-btn');
-    const traitBadgesBar = document.getElementById('trait-badges-bar');
-    const copyJsonBtn = document.getElementById('copy-json-btn');
-
-    function updateTokenUI() {
-      tokenInput.value = currentToken;
-      if (currentToken.trim()) {
-        tokenIndicator.classList.remove('bg-red-500');
-        tokenIndicator.classList.add('bg-emerald-500');
-      } else {
-        tokenIndicator.classList.remove('bg-emerald-500');
-        tokenIndicator.classList.add('bg-red-500');
-      }
-    }
-
-    // Global click/touch event delegation to reliably catch touch events on mobile
-    document.addEventListener('click', (e) => {
-      if (e.target.closest('#open-token-btn')) {
-        e.preventDefault();
-        tokenModal.classList.remove('hidden');
-      }
-    });
-
-    closeTokenBtn.addEventListener('click', () => {
-      currentToken = tokenInput.value.trim();
-      localStorage.setItem('amp_developer_token', currentToken);
-      updateTokenUI();
-      tokenModal.classList.add('hidden');
-    });
-
-    function formatArtworkUrl(url, width = 4000, height = 4000, format = 'jpg') {
-      if (!url) return '';
-      return url
-        .replace('{w}', width)
-        .replace('{h}', height)
-        .replace('{f}', format);
-    }
-
-    async function fetchAMP(endpoint) {
-      if (!currentToken) {
-        tokenModal.classList.remove('hidden');
-        throw new Error('Please set your Apple Music Authorization Token first.');
-      }
-
-      const formattedToken = currentToken.startsWith('Bearer ') ? currentToken : `Bearer ${currentToken}`;
-      const response = await fetch(`${WORKER_PROXY_URL}${endpoint}`, {
-        headers: {
-          'Authorization': formattedToken
-        }
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.errors?.[0]?.detail || `API error: ${response.status}`);
-      }
-
-      return await response.json();
-    }
-
-    async function executeSearch() {
-      const query = searchInput.value.trim();
-      const storefront = storefrontSelect.value;
-      const type = searchType.value;
-
-      if (!query) return;
-
-      resultsContainer.classList.remove('hidden');
-      resultsGrid.innerHTML = '<div class="col-span-full text-center py-8 text-gray-400">Loading catalog items...</div>';
-      detailContainer.classList.add('hidden');
-
-      try {
-        let endpoint = '';
-        if (query.includes('music.apple.com')) {
-          const urlObj = new URL(query);
-          const pathSegments = urlObj.pathname.split('/').filter(Boolean);
-          const urlStorefront = pathSegments[0] || storefront;
-          const urlType = pathSegments[1];
-          const urlId = pathSegments[pathSegments.length - 1].split('?')[0];
-
-          endpoint = `/v1/catalog/${urlStorefront}/${urlType}/${urlId}?include=editorialVideo,artists,albums`;
-          const data = await fetchAMP(endpoint);
-          if (data.data && data.data[0]) {
-            renderDetail(data.data[0]);
-            resultsContainer.classList.add('hidden');
-            return;
-          }
-        } else {
-          endpoint = `/v1/catalog/${storefront}/search?term=${encodeURIComponent(query)}&types=${type}&limit=24&include=editorialVideo`;
-          const data = await fetchAMP(endpoint);
-          const items = data.results?.[type]?.data || [];
-          renderSearchResults(items);
-        }
-      } catch (err) {
-        resultsGrid.innerHTML = `<div class="col-span-full text-center py-8 text-rose-500">${err.message}</div>`;
-      }
-    }
-
-    searchBtn.addEventListener('click', executeSearch);
-    searchInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') executeSearch();
-    });
-
-    function renderSearchResults(items) {
-      if (!items.length) {
-        resultsGrid.innerHTML = '<div class="col-span-full text-center py-8 text-gray-400">No items found for this storefront.</div>';
-        return;
-      }
-
-      resultsGrid.innerHTML = items.map(item => {
-        const attributes = item.attributes || {};
-        const artwork = attributes.artwork;
-        const imgUrl = artwork ? formatArtworkUrl(artwork.url, 600, 600) : '';
-        const title = attributes.name || 'Untitled';
-        const subtitle = attributes.artistName || attributes.curatorName || '';
-
-        return `
-          <div data-id="${item.id}" class="search-card bg-white/5 border border-white/10 hover:border-rose-500/50 rounded-xl p-3 cursor-pointer transition transform hover:-translate-y-1 flex flex-col gap-2 touch-manipulation">
-            <div class="aspect-square bg-black/50 rounded-lg overflow-hidden relative">
-              ${imgUrl ? `<img src="${imgUrl}" alt="${title}" class="w-full h-full object-cover" />` : '<div class="w-full h-full flex items-center justify-center text-xs text-gray-600">No Art</div>'}
-            </div>
-            <div class="flex-1 min-w-0">
-              <h3 class="text-xs font-bold text-white truncate">${title}</h3>
-              <p class="text-[11px] text-gray-400 truncate">${subtitle}</p>
-            </div>
-          </div>
-        `;
-      }).join('');
-
-      document.querySelectorAll('.search-card').forEach((card, idx) => {
-        card.addEventListener('click', () => renderDetail(items[idx]));
-      });
-    }
-
-    function buildTraitBadges(audioTraits = []) {
-      traitBadgesBar.innerHTML = '';
-      
-      const hasDolby = audioTraits.includes('lossy-stereo') || audioTraits.includes('spatial') || audioTraits.includes('atmos');
-      const hasLossless = audioTraits.includes('lossless');
-      const hasHiRes = audioTraits.includes('hi-res-lossless');
-
-      if (hasLossless || hasHiRes) {
-        const badgeWrapper = document.createElement('div');
-        badgeWrapper.className = 'flex items-center gap-1 bg-white/10 px-2.5 py-1 rounded-md';
-        
-        const img = document.createElement('img');
-        img.src = LOCAL_LOSSLESS_SVG;
-        img.className = 'badge-icon';
-        img.alt = 'Lossless';
-        img.onerror = () => {
-          badgeWrapper.innerHTML = `<span class="text-xs font-bold tracking-wider text-gray-200">LOSSLESS</span>`;
+        saveTokenBtn.onclick = () => {
+            localStorage.setItem("amusic_token", tokenInput.value.trim());
+            localStorage.setItem("amusic_proxy", proxyUrlInput.value.trim().replace(/\/$/, ""));
+            toggleModal(false);
+            showStatus("Configuration saved successfully!", "success");
         };
-        
-        badgeWrapper.appendChild(img);
-        if (hasHiRes) {
-          const hiResTag = document.createElement('span');
-          hiResTag.className = 'text-[10px] font-extrabold text-rose-400 uppercase ml-1';
-          hiResTag.innerText = 'HI-RES';
-          badgeWrapper.appendChild(hiResTag);
-        }
-        traitBadgesBar.appendChild(badgeWrapper);
-      }
 
-      if (hasDolby) {
-        const badgeWrapper = document.createElement('div');
-        badgeWrapper.className = 'flex items-center bg-white/10 px-2.5 py-1 rounded-md';
-        
-        const img = document.createElement('img');
-        img.src = LOCAL_DOLBY_SVG;
-        img.className = 'badge-icon';
-        img.alt = 'Dolby Atmos';
-        img.onerror = () => {
-          badgeWrapper.innerHTML = `<span class="text-xs font-bold tracking-wider text-gray-200">DOLBY ATMOS</span>`;
+        function showStatus(msg, type = "info") {
+            statusMessage.innerHTML = `
+                <i class="fa-solid ${type === 'error' ? 'fa-circle-exclamation text-red-400' : type === 'success' ? 'fa-circle-check text-emerald-400' : 'fa-circle-info text-sky-400'}"></i>
+                <span>${msg}</span>
+            `;
+            statusMessage.className = `text-xs font-mono p-3.5 rounded-xl border flex items-center gap-3 transition ${
+                type === 'error' ? 'bg-red-950/40 border-red-900/60 text-red-200' :
+                type === 'success' ? 'bg-emerald-950/40 border-emerald-900/60 text-emerald-200' :
+                'bg-zinc-900 border-zinc-800 text-zinc-300'
+            }`;
+            statusMessage.classList.remove("hidden");
+        }
+
+        // Core API Fetch Proxy Handler
+        async function fetchAMP(endpoint) {
+            const token = localStorage.getItem("amusic_token");
+            const proxyUrl = localStorage.getItem("amusic_proxy") || "https://amp.ejpoacc.workers.dev";
+
+            if (!token) {
+                toggleModal(true);
+                throw new Error("Missing developer token. Please set your Bearer token in Settings.");
+            }
+
+            const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+            const targetUrl = `${proxyUrl}${cleanEndpoint}`;
+
+            const response = await fetch(targetUrl, {
+                headers: {
+                    "Authorization": token.startsWith("Bearer ") ? token : `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`API HTTP Error: ${response.status} (${response.statusText})`);
+            }
+
+            return await response.json();
+        }
+
+        // Search Action Handler
+        async function handleSearch() {
+            const query = searchInput.value.trim();
+            const type = typeSelect.value;
+            if (!query) return;
+
+            resultsContainer.innerHTML = `<div class="text-center py-10"><i class="fa-solid fa-spinner animate-spin text-rose-500 text-2xl"></i></div>`;
+            showStatus("Querying Apple Music API...", "info");
+
+            try {
+                let endpoint;
+                
+                // Parse direct music.apple.com URLs
+                if (query.includes("music.apple.com")) {
+                    const urlObj = new URL(query);
+                    const pathSegments = urlObj.pathname.split('/').filter(Boolean);
+                    const urlStorefront = pathSegments[0] || storefront;
+                    const urlType = pathSegments[1];
+                    const urlId = pathSegments[pathSegments.length - 1].split('?')[0];
+
+                    endpoint = `/v1/catalog/${urlStorefront}/${urlType}/${urlId}?include=editorialVideo,artists,albums`;
+                } else {
+                    endpoint = `/v1/catalog/${storefront}/search?term=${encodeURIComponent(query)}&types=${type}&limit=24&include=editorialVideo`;
+                }
+
+                const data = await fetchAMP(endpoint);
+                jsonViewer.textContent = JSON.stringify(data, null, 2);
+
+                const items = data.data || data.results?.[type]?.data || [];
+                renderResults(items);
+                showStatus(`Successfully fetched ${items.length} item(s)`, "success");
+
+            } catch (err) {
+                jsonViewer.textContent = `// Error executing request:\n${err.message}`;
+                showStatus(err.message, "error");
+                resultsContainer.innerHTML = `<div class="text-center py-8 text-zinc-500 text-xs">Failed to load results. Check settings.</div>`;
+            }
+        }
+
+        function renderResults(items) {
+            resultsContainer.innerHTML = "";
+            resultsCount.textContent = `${items.length} item(s)`;
+
+            if (!items.length) {
+                resultsContainer.innerHTML = `<div class="text-center py-8 text-zinc-500 text-xs">No matching catalog items found.</div>`;
+                return;
+            }
+
+            items.forEach(item => {
+                const attr = item.attributes || {};
+                const artworkUrl = attr.artwork ? attr.artwork.url.replace('{w}', '250').replace('{h}', '250') : '';
+
+                const card = document.createElement("div");
+                card.className = "bg-zinc-900 border border-zinc-800/80 rounded-xl p-3 flex gap-3 items-center hover:border-zinc-700 transition cursor-pointer group";
+                
+                card.innerHTML = `
+                    ${artworkUrl ? `<img src="${artworkUrl}" class="w-14 h-14 rounded-lg object-cover bg-zinc-950 flex-shrink-0 shadow">` : `<div class="w-14 h-14 rounded-lg bg-zinc-800 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-music text-zinc-600"></i></div>`}
+                    <div class="flex-grow min-w-0">
+                        <h4 class="font-bold text-xs text-white truncate group-hover:text-rose-400 transition">${attr.name || 'Untitled'}</h4>
+                        <p class="text-[11px] text-zinc-400 truncate">${attr.artistName || attr.curatorName || 'Unknown Artist'}</p>
+                        <div class="flex items-center gap-2 mt-1">
+                            <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400">${item.type}</span>
+                            <span class="text-[9px] font-mono text-zinc-500">ID: ${item.id}</span>
+                        </div>
+                    </div>
+                `;
+
+                card.onclick = () => {
+                    jsonViewer.textContent = JSON.stringify(item, null, 2);
+                };
+
+                resultsContainer.appendChild(card);
+            });
+        }
+
+        // Copy JSON Button
+        copyJsonBtn.onclick = () => {
+            navigator.clipboard.writeText(jsonViewer.textContent);
+            showStatus("JSON copied to clipboard!", "success");
         };
-        
-        badgeWrapper.appendChild(img);
-        traitBadgesBar.appendChild(badgeWrapper);
-      }
 
-      if (!traitBadgesBar.children.length) {
-        traitBadgesBar.innerHTML = '<span class="text-xs text-gray-500">Standard Stereo Audio</span>';
-      }
-    }
-
-    function renderDetail(item) {
-      detailContainer.classList.remove('hidden');
-      detailContainer.scrollIntoView({ behavior: 'smooth' });
-
-      const attr = item.attributes || {};
-      const artwork = attr.artwork;
-      const staticArtUrl = artwork ? formatArtworkUrl(artwork.url, 4000, 4000) : '';
-
-      detailArtwork.src = staticArtUrl;
-      detailArtwork.classList.remove('hidden');
-      detailVideo.classList.add('hidden');
-      
-      downloadArtBtn.href = staticArtUrl;
-
-      detailTitle.innerText = attr.name || 'Untitled';
-      detailSubtitle.innerText = attr.artistName || attr.curatorName || '';
-      detailMeta.innerText = [
-        attr.releaseDate,
-        attr.genreNames?.join(', '),
-        attr.recordLabel
-      ].filter(Boolean).join(' • ');
-
-      detailJson.innerText = JSON.stringify(item, null, 2);
-      buildTraitBadges(attr.audioTraits || []);
-
-      if (attr.previews && attr.previews[0]?.url) {
-        audioPlayerContainer.classList.remove('hidden');
-        detailAudio.src = attr.previews[0].url;
-      } else {
-        audioPlayerContainer.classList.add('hidden');
-        detailAudio.src = '';
-      }
-
-      currentMotionUrl = '';
-      const editorialVideo = item.relationships?.editorialVideo?.data?.[0]?.attributes
-        || attr.editorialVideo?.motionDetailSquare
-        || attr.editorialVideo?.motionSquare;
-
-      if (editorialVideo) {
-        currentMotionUrl = editorialVideo.video || editorialVideo.hlsUrl || '';
-      }
-
-      if (currentMotionUrl) {
-        toggleMotionBtn.classList.remove('hidden');
-      } else {
-        toggleMotionBtn.classList.add('hidden');
-      }
-    }
-
-    toggleMotionBtn.addEventListener('click', () => {
-      if (!currentMotionUrl) return;
-
-      if (detailVideo.classList.contains('hidden')) {
-        detailArtwork.classList.add('hidden');
-        detailVideo.classList.remove('hidden');
-
-        if (currentMotionUrl.endsWith('.m3u8')) {
-          if (Hls.isSupported()) {
-            if (hlsInstance) hlsInstance.destroy();
-            hlsInstance = new Hls();
-            hlsInstance.loadSource(currentMotionUrl);
-            hlsInstance.attachMedia(detailVideo);
-          } else if (detailVideo.canPlayType('application/vnd.apple.mpegurl')) {
-            detailVideo.src = currentMotionUrl;
-          }
-        } else {
-          detailVideo.src = currentMotionUrl;
-        }
-        detailVideo.play();
-      } else {
-        detailVideo.pause();
-        detailVideo.classList.add('hidden');
-        detailArtwork.classList.remove('hidden');
-      }
-    });
-
-    copyJsonBtn.addEventListener('click', () => {
-      navigator.clipboard.writeText(detailJson.innerText);
-      copyJsonBtn.innerText = 'Copied!';
-      setTimeout(() => copyJsonBtn.innerText = 'Copy JSON', 2000);
-    });
-
-    updateTokenUI();
-  </script>
+        // Event Listeners
+        searchBtn.onclick = handleSearch;
+        searchInput.onkeypress = (e) => { if (e.key === "Enter") handleSearch(); };
+    </script>
 </body>
 </html>
