@@ -38,7 +38,7 @@
                 </div>
                 <div>
                     <h1 class="font-bold tracking-tight text-white leading-none text-lg">AMP Explorer</h1>
-                    <span class="text-[10px] font-mono text-zinc-400">Apple Music API Metadata Inspector</span>
+                    <span class="text-[10px] font-mono text-zinc-400">Apple Music API Visualizer</span>
                 </div>
             </div>
 
@@ -67,7 +67,6 @@
                         <option value="albums">Albums</option>
                         <option value="artists">Artists</option>
                         <option value="playlists">Playlists</option>
-                        <option value="music-videos">Videos</option>
                     </select>
 
                     <button id="searchBtn" class="bg-rose-600 hover:bg-rose-500 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition shadow-lg shadow-rose-950/40 flex items-center gap-2 flex-shrink-0">
@@ -84,33 +83,45 @@
         <!-- Content Grid -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
             
-            <!-- Left Column: Results List -->
-            <section class="lg:col-span-5 space-y-3">
+            <!-- Left Column: Search Results -->
+            <section class="lg:col-span-4 space-y-3">
                 <div class="flex items-center justify-between px-1">
-                    <h2 class="text-xs font-bold uppercase tracking-wider text-zinc-400">Catalog Results</h2>
+                    <h2 class="text-xs font-bold uppercase tracking-wider text-zinc-400">Results</h2>
                     <span id="resultsCount" class="text-[11px] font-mono text-zinc-500">0 items</span>
                 </div>
                 
-                <div id="resultsContainer" class="space-y-2.5 max-h-[70vh] overflow-y-auto pr-1 custom-scrollbar">
+                <div id="resultsContainer" class="space-y-2 max-h-[75vh] overflow-y-auto pr-1 custom-scrollbar">
                     <div class="text-center py-12 border border-dashed border-zinc-800 rounded-2xl">
                         <i class="fa-solid fa-compact-disc text-3xl text-zinc-700 mb-2 animate-spin-slow"></i>
-                        <p class="text-xs text-zinc-500">Search for tracks or paste a song URL to inspect API payloads</p>
+                        <p class="text-xs text-zinc-500">Search or paste an Apple Music link to display visual cards</p>
                     </div>
                 </div>
             </section>
 
-            <!-- Right Column: JSON Payload Inspector -->
-            <section class="lg:col-span-7 space-y-3">
+            <!-- Right Column: Visual Apple Music View + JSON Inspector Toggle -->
+            <section class="lg:col-span-8 space-y-3">
                 <div class="flex items-center justify-between px-1">
-                    <h2 class="text-xs font-bold uppercase tracking-wider text-zinc-400">API Response Payload</h2>
+                    <div class="flex gap-2">
+                        <button id="viewVisualBtn" class="text-xs font-semibold px-3 py-1 rounded-lg bg-rose-600 text-white transition">Apple Music UI</button>
+                        <button id="viewJsonBtn" class="text-xs font-semibold px-3 py-1 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white transition">Raw JSON</button>
+                    </div>
                     <button id="copyJsonBtn" class="text-xs text-zinc-400 hover:text-white flex items-center gap-1.5 bg-zinc-900 px-2.5 py-1 rounded border border-zinc-800 transition">
                         <i class="fa-regular fa-copy"></i>
-                        <span>Copy Raw JSON</span>
+                        <span>Copy JSON</span>
                     </button>
                 </div>
 
-                <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 font-mono text-xs overflow-x-auto max-h-[70vh] custom-scrollbar shadow-inner">
-                    <pre id="jsonViewer" class="text-rose-300/90 leading-relaxed"><code>// Raw API payload response will render here...</code></pre>
+                <!-- Visual Apple Music Card Wrapper -->
+                <div id="visualCardView" class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-2xl relative overflow-hidden min-h-[500px]">
+                    <div id="visualCardContent" class="flex flex-col items-center justify-center text-zinc-500 h-[450px] space-y-3">
+                        <i class="fa-brands fa-apple text-5xl text-zinc-700"></i>
+                        <p class="text-xs">Select a song or album from the results list to render the visual player</p>
+                    </div>
+                </div>
+
+                <!-- Raw JSON Inspector (Hidden by default) -->
+                <div id="jsonView" class="hidden bg-zinc-900 border border-zinc-800 rounded-2xl p-4 font-mono text-xs overflow-x-auto max-h-[75vh] custom-scrollbar shadow-inner">
+                    <pre id="jsonViewer" class="text-rose-300/90 leading-relaxed"><code>// Raw API payload will render here...</code></pre>
                 </div>
             </section>
         </div>
@@ -120,7 +131,7 @@
     <div id="configModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
         <div class="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl relative">
             <div class="flex justify-between items-center border-b border-zinc-800 pb-3">
-                <h3 class="font-bold text-lg text-white">Proxy & Token Configuration</h3>
+                <h3 class="font-bold text-lg text-white">Proxy & Token Settings</h3>
                 <button id="closeModalBtn" class="text-zinc-400 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
             </div>
 
@@ -146,10 +157,11 @@
         </div>
     </div>
 
-    <!-- Application Logic -->
+    <!-- Application Script -->
     <script>
         let storefront = "us";
         let currentAudio = null;
+        let lastPayload = null;
 
         // DOM Elements
         const searchInput = document.getElementById("searchInput");
@@ -157,8 +169,14 @@
         const searchBtn = document.getElementById("searchBtn");
         const resultsContainer = document.getElementById("resultsContainer");
         const resultsCount = document.getElementById("resultsCount");
-        const jsonViewer = document.getElementById("jsonViewer");
         const statusMessage = document.getElementById("statusMessage");
+
+        const visualCardView = document.getElementById("visualCardView");
+        const visualCardContent = document.getElementById("visualCardContent");
+        const jsonView = document.getElementById("jsonView");
+        const jsonViewer = document.getElementById("jsonViewer");
+        const viewVisualBtn = document.getElementById("viewVisualBtn");
+        const viewJsonBtn = document.getElementById("viewJsonBtn");
         const copyJsonBtn = document.getElementById("copyJsonBtn");
 
         const configModal = document.getElementById("configModal");
@@ -169,11 +187,11 @@
         const tokenInput = document.getElementById("tokenInput");
         const proxyUrlInput = document.getElementById("proxyUrlInput");
 
-        // App Init
+        // Initialization
         tokenInput.value = localStorage.getItem("amusic_token") || "";
         proxyUrlInput.value = localStorage.getItem("amusic_proxy") || "https://amp.ejpoacc.workers.dev";
 
-        // Modal Handlers
+        // Toggle Modal
         const toggleModal = (show) => configModal.classList.toggle("hidden", !show);
         openConfigBtn.onclick = () => toggleModal(true);
         closeModalBtn.onclick = () => toggleModal(false);
@@ -183,7 +201,22 @@
             localStorage.setItem("amusic_token", tokenInput.value.trim());
             localStorage.setItem("amusic_proxy", proxyUrlInput.value.trim().replace(/\/$/, ""));
             toggleModal(false);
-            showStatus("Configuration saved successfully!", "success");
+            showStatus("Settings saved successfully!", "success");
+        };
+
+        // Switch View Modes
+        viewVisualBtn.onclick = () => {
+            visualCardView.classList.remove("hidden");
+            jsonView.classList.add("hidden");
+            viewVisualBtn.className = "text-xs font-semibold px-3 py-1 rounded-lg bg-rose-600 text-white transition";
+            viewJsonBtn.className = "text-xs font-semibold px-3 py-1 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white transition";
+        };
+
+        viewJsonBtn.onclick = () => {
+            visualCardView.classList.add("hidden");
+            jsonView.classList.remove("hidden");
+            viewJsonBtn.className = "text-xs font-semibold px-3 py-1 rounded-lg bg-rose-600 text-white transition";
+            viewVisualBtn.className = "text-xs font-semibold px-3 py-1 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white transition";
         };
 
         function showStatus(msg, type = "info") {
@@ -199,14 +232,13 @@
             statusMessage.classList.remove("hidden");
         }
 
-        // Core API Fetch Proxy Handler
         async function fetchAMP(endpoint) {
             const token = localStorage.getItem("amusic_token");
             const proxyUrl = localStorage.getItem("amusic_proxy") || "https://amp.ejpoacc.workers.dev";
 
             if (!token) {
                 toggleModal(true);
-                throw new Error("Missing developer token. Please set your Bearer token in Settings.");
+                throw new Error("Missing developer token. Please set your token in Settings.");
             }
 
             const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
@@ -225,7 +257,6 @@
             return await response.json();
         }
 
-        // Search Executor
         async function handleSearch() {
             const query = searchInput.value.trim();
             const type = typeSelect.value;
@@ -249,16 +280,22 @@
                     const urlType = pathSegments[1];
                     const urlId = pathSegments[pathSegments.length - 1].split('?')[0];
 
-                    endpoint = `/v1/catalog/${urlStorefront}/${urlType}/${urlId}?include=editorialVideo,artists,albums`;
+                    endpoint = `/v1/catalog/${urlStorefront}/${urlType}/${urlId}?include=editorialVideo,artists,albums,tracks`;
                 } else {
                     endpoint = `/v1/catalog/${storefront}/search?term=${encodeURIComponent(query)}&types=${type}&limit=24&include=editorialVideo`;
                 }
 
                 const data = await fetchAMP(endpoint);
+                lastPayload = data;
                 jsonViewer.textContent = JSON.stringify(data, null, 2);
 
                 const items = data.data || data.results?.[type]?.data || [];
                 renderResults(items);
+                
+                if (items.length > 0) {
+                    renderAppleMusicUI(items[0]);
+                }
+
                 showStatus(`Successfully fetched ${items.length} item(s)`, "success");
 
             } catch (err) {
@@ -268,27 +305,92 @@
             }
         }
 
-        function playPreview(url, btn) {
+        function playPreviewTrack(url, playBtn) {
             if (currentAudio) {
                 currentAudio.pause();
-                document.querySelectorAll('.preview-btn i').forEach(icon => {
-                    icon.className = 'fa-solid fa-play text-xs';
-                });
                 if (currentAudio.src === url) {
                     currentAudio = null;
+                    if (playBtn) playBtn.innerHTML = `<i class="fa-solid fa-play mr-2"></i> Preview`;
                     return;
                 }
             }
 
             currentAudio = new Audio(url);
             currentAudio.play();
-            const icon = btn.querySelector('i');
-            if (icon) icon.className = 'fa-solid fa-pause text-xs';
+            if (playBtn) playBtn.innerHTML = `<i class="fa-solid fa-pause mr-2"></i> Playing...`;
 
             currentAudio.onended = () => {
-                if (icon) icon.className = 'fa-solid fa-play text-xs';
+                if (playBtn) playBtn.innerHTML = `<i class="fa-solid fa-play mr-2"></i> Preview`;
                 currentAudio = null;
             };
+        }
+
+        // Render Authentic Apple Music Layout
+        function renderAppleMusicUI(item) {
+            const attr = item.attributes || {};
+            const artworkUrl = attr.artwork ? attr.artwork.url.replace('{w}', '600').replace('{h}', '600') : '';
+            const bgColor = attr.artwork?.bgColor ? `#${attr.artwork.bgColor}` : '#18181b';
+            const previewUrl = attr.previews?.[0]?.url || '';
+            const year = attr.releaseDate ? attr.releaseDate.split('-')[0] : '';
+            const genre = attr.genreNames?.[0] || 'Music';
+
+            visualCardContent.innerHTML = `
+                <div class="relative w-full rounded-2xl p-6 sm:p-8 flex flex-col md:flex-row gap-6 items-center md:items-start transition" style="background: linear-gradient(135deg, ${bgColor}ee, #09090b 90%);">
+                    
+                    <!-- Cover Art -->
+                    <div class="relative w-48 h-48 sm:w-56 sm:h-56 flex-shrink-0 shadow-2xl rounded-2xl overflow-hidden group">
+                        ${artworkUrl ? `<img src="${artworkUrl}" class="w-full h-full object-cover shadow-2xl">` : `<div class="w-full h-full bg-zinc-800 flex items-center justify-center"><i class="fa-solid fa-music text-4xl text-zinc-600"></i></div>`}
+                    </div>
+
+                    <!-- Album Metadata -->
+                    <div class="flex-grow space-y-3 text-center md:text-left min-w-0">
+                        <h2 class="text-2xl sm:text-3xl font-bold text-white tracking-tight leading-snug truncate">${attr.name || 'Untitled'}</h2>
+                        <h3 class="text-lg font-medium text-rose-400 truncate">${attr.artistName || 'Unknown Artist'}</h3>
+                        <p class="text-xs text-zinc-400 font-medium">${genre} · ${year}</p>
+
+                        <!-- Audio Badges -->
+                        <div class="flex flex-wrap items-center justify-center md:justify-start gap-2.5 pt-1">
+                            <span class="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/10 text-white text-[10px] font-bold tracking-wider uppercase border border-white/10">
+                                <i class="fa-solid fa-wave-square text-rose-400"></i> Lossless
+                            </span>
+                            <span class="px-2.5 py-1 rounded-md bg-white/10 text-white text-[10px] font-bold tracking-wider uppercase border border-white/10">
+                                Dolby Atmos
+                            </span>
+                        </div>
+
+                        <!-- Preview Action Button -->
+                        ${previewUrl ? `
+                            <div class="pt-3">
+                                <button id="uiPreviewBtn" class="bg-white text-black hover:bg-zinc-200 font-bold px-6 py-2.5 rounded-full text-xs transition shadow-lg inline-flex items-center">
+                                    <i class="fa-solid fa-play mr-2"></i> Preview
+                                </button>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+
+                <!-- Track List Section -->
+                <div class="w-full mt-6 space-y-1">
+                    <div class="px-4 py-2 flex items-center text-[10px] font-bold uppercase tracking-wider text-zinc-500 border-b border-zinc-800">
+                        <span class="w-8">#</span>
+                        <span class="flex-grow">Title</span>
+                        <span class="w-12 text-right"><i class="fa-regular fa-clock"></i></span>
+                    </div>
+
+                    <div class="px-4 py-3 flex items-center justify-between text-sm rounded-xl bg-zinc-800/40 border border-zinc-800/60 hover:bg-zinc-800/80 transition cursor-pointer">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <span class="text-zinc-500 text-xs font-mono w-4">${attr.trackNumber || 1}</span>
+                            <span class="font-semibold text-white truncate text-xs">${attr.name || 'Untitled Track'}</span>
+                        </div>
+                        <span class="text-xs font-mono text-zinc-400 ml-4">${attr.durationInMillis ? `${Math.floor(attr.durationInMillis / 60000)}:${Math.floor((attr.durationInMillis % 60000) / 1000).toString().padStart(2, '0')}` : '--:--'}</span>
+                    </div>
+                </div>
+            `;
+
+            const uiPreviewBtn = document.getElementById("uiPreviewBtn");
+            if (uiPreviewBtn && previewUrl) {
+                uiPreviewBtn.onclick = () => playPreviewTrack(previewUrl, uiPreviewBtn);
+            }
         }
 
         function renderResults(items) {
@@ -302,50 +404,21 @@
 
             items.forEach(item => {
                 const attr = item.attributes || {};
-                const artworkUrl = attr.artwork ? attr.artwork.url.replace('{w}', '300').replace('{h}', '300') : '';
-                const previewUrl = attr.previews?.[0]?.url || '';
-                const durationMin = attr.durationInMillis ? `${Math.floor(attr.durationInMillis / 60000)}:${Math.floor((attr.durationInMillis % 60000) / 1000).toString().padStart(2, '0')}` : '';
+                const artworkUrl = attr.artwork ? attr.artwork.url.replace('{w}', '200').replace('{h}', '200') : '';
 
                 const card = document.createElement("div");
-                card.className = "bg-zinc-900 border border-zinc-800/80 rounded-xl p-3 flex gap-3 items-center hover:border-zinc-700 transition cursor-pointer group relative";
+                card.className = "bg-zinc-900 border border-zinc-800/80 rounded-xl p-2.5 flex gap-3 items-center hover:border-zinc-700 transition cursor-pointer group";
                 
                 card.innerHTML = `
-                    <div class="relative w-14 h-14 flex-shrink-0">
-                        ${artworkUrl ? `<img src="${artworkUrl}" class="w-14 h-14 rounded-lg object-cover bg-zinc-950 shadow">` : `<div class="w-14 h-14 rounded-lg bg-zinc-800 flex items-center justify-center"><i class="fa-solid fa-music text-zinc-600"></i></div>`}
-                        ${previewUrl ? `
-                            <button class="preview-btn absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-lg transition text-white">
-                                <i class="fa-solid fa-play text-xs"></i>
-                            </button>
-                        ` : ''}
-                    </div>
-
-                    <div class="flex-grow min-w-0 space-y-0.5">
-                        <div class="flex items-center justify-between gap-2">
-                            <h4 class="font-bold text-xs text-white truncate group-hover:text-rose-400 transition">${attr.name || 'Untitled'}</h4>
-                            ${durationMin ? `<span class="text-[10px] font-mono text-zinc-500 flex-shrink-0">${durationMin}</span>` : ''}
-                        </div>
+                    ${artworkUrl ? `<img src="${artworkUrl}" class="w-12 h-12 rounded-lg object-cover bg-zinc-950 flex-shrink-0 shadow">` : `<div class="w-12 h-12 rounded-lg bg-zinc-800 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-music text-zinc-600"></i></div>`}
+                    <div class="flex-grow min-w-0">
+                        <h4 class="font-bold text-xs text-white truncate group-hover:text-rose-400 transition">${attr.name || 'Untitled'}</h4>
                         <p class="text-[11px] text-zinc-400 truncate">${attr.artistName || attr.curatorName || 'Unknown Artist'}</p>
-                        <p class="text-[10px] text-zinc-500 truncate">${attr.albumName || attr.genreNames?.[0] || ''}</p>
-                        
-                        <div class="flex items-center gap-2 pt-1">
-                            <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400">${item.type}</span>
-                            <span class="text-[9px] font-mono text-zinc-500">ID: ${item.id}</span>
-                            ${attr.hasLyrics ? `<span class="text-[8px] font-bold px-1 rounded bg-rose-950 text-rose-300 border border-rose-800/50">LYRICS</span>` : ''}
-                        </div>
                     </div>
                 `;
 
-                // Quick Play Button Click
-                const playBtn = card.querySelector('.preview-btn');
-                if (playBtn) {
-                    playBtn.onclick = (e) => {
-                        e.stopPropagation();
-                        playPreview(previewUrl, playBtn);
-                    };
-                }
-
-                // Card Payload Inspect Click
                 card.onclick = () => {
+                    renderAppleMusicUI(item);
                     jsonViewer.textContent = JSON.stringify(item, null, 2);
                 };
 
@@ -353,13 +426,11 @@
             });
         }
 
-        // Copy JSON Button
         copyJsonBtn.onclick = () => {
             navigator.clipboard.writeText(jsonViewer.textContent);
             showStatus("JSON copied to clipboard!", "success");
         };
 
-        // Event Handlers
         searchBtn.onclick = handleSearch;
         searchInput.onkeypress = (e) => { if (e.key === "Enter") handleSearch(); };
     </script>
