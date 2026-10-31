@@ -8,6 +8,18 @@
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        @font-face {
+            font-family: 'SF Pro';
+            src: url('/assets/font/SF-Pro.ttf') format('truetype');
+            font-weight: 100 900;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        body {
+            font-family: 'SF Pro', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #18181b; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 3px; }
@@ -45,7 +57,7 @@
             <div class="flex flex-col sm:flex-row gap-2.5">
                 <div class="relative flex-grow">
                     <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 text-sm"></i>
-                    <input type="text" id="searchInput" placeholder="Paste Apple Music URL or search term (e.g., Adele, 1440857781)..." 
+                    <input type="text" id="searchInput" placeholder="Paste Apple Music URL or search term (e.g., KiiiKiii, 6796609794)..." 
                            class="w-full bg-zinc-900/90 border border-zinc-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 transition">
                 </div>
                 
@@ -66,13 +78,13 @@
             </div>
         </div>
 
-        <!-- Status & Banner Alerts -->
+        <!-- Status Alert Banner -->
         <div id="statusMessage" class="hidden text-xs font-mono p-3.5 rounded-xl border flex items-center gap-3 transition"></div>
 
-        <!-- Content Split Grid -->
+        <!-- Content Grid -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
             
-            <!-- Left: Results List -->
+            <!-- Left Column: Results List -->
             <section class="lg:col-span-5 space-y-3">
                 <div class="flex items-center justify-between px-1">
                     <h2 class="text-xs font-bold uppercase tracking-wider text-zinc-400">Catalog Results</h2>
@@ -82,12 +94,12 @@
                 <div id="resultsContainer" class="space-y-2.5 max-h-[70vh] overflow-y-auto pr-1 custom-scrollbar">
                     <div class="text-center py-12 border border-dashed border-zinc-800 rounded-2xl">
                         <i class="fa-solid fa-compact-disc text-3xl text-zinc-700 mb-2 animate-spin-slow"></i>
-                        <p class="text-xs text-zinc-500">Search for tracks, albums, or paste a link to inspect API payloads</p>
+                        <p class="text-xs text-zinc-500">Search for tracks or paste a song URL to inspect API payloads</p>
                     </div>
                 </div>
             </section>
 
-            <!-- Right: JSON Payload Inspector -->
+            <!-- Right Column: JSON Payload Inspector -->
             <section class="lg:col-span-7 space-y-3">
                 <div class="flex items-center justify-between px-1">
                     <h2 class="text-xs font-bold uppercase tracking-wider text-zinc-400">API Response Payload</h2>
@@ -134,9 +146,10 @@
         </div>
     </div>
 
-    <!-- Application Script -->
+    <!-- Application Logic -->
     <script>
         let storefront = "us";
+        let currentAudio = null;
 
         // DOM Elements
         const searchInput = document.getElementById("searchInput");
@@ -156,11 +169,11 @@
         const tokenInput = document.getElementById("tokenInput");
         const proxyUrlInput = document.getElementById("proxyUrlInput");
 
-        // Initialization
+        // App Init
         tokenInput.value = localStorage.getItem("amusic_token") || "";
         proxyUrlInput.value = localStorage.getItem("amusic_proxy") || "https://amp.ejpoacc.workers.dev";
 
-        // Modal Controls
+        // Modal Handlers
         const toggleModal = (show) => configModal.classList.toggle("hidden", !show);
         openConfigBtn.onclick = () => toggleModal(true);
         closeModalBtn.onclick = () => toggleModal(false);
@@ -212,11 +225,16 @@
             return await response.json();
         }
 
-        // Search Action Handler
+        // Search Executor
         async function handleSearch() {
             const query = searchInput.value.trim();
             const type = typeSelect.value;
             if (!query) return;
+
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio = null;
+            }
 
             resultsContainer.innerHTML = `<div class="text-center py-10"><i class="fa-solid fa-spinner animate-spin text-rose-500 text-2xl"></i></div>`;
             showStatus("Querying Apple Music API...", "info");
@@ -224,7 +242,6 @@
             try {
                 let endpoint;
                 
-                // Parse direct music.apple.com URLs
                 if (query.includes("music.apple.com")) {
                     const urlObj = new URL(query);
                     const pathSegments = urlObj.pathname.split('/').filter(Boolean);
@@ -251,6 +268,29 @@
             }
         }
 
+        function playPreview(url, btn) {
+            if (currentAudio) {
+                currentAudio.pause();
+                document.querySelectorAll('.preview-btn i').forEach(icon => {
+                    icon.className = 'fa-solid fa-play text-xs';
+                });
+                if (currentAudio.src === url) {
+                    currentAudio = null;
+                    return;
+                }
+            }
+
+            currentAudio = new Audio(url);
+            currentAudio.play();
+            const icon = btn.querySelector('i');
+            if (icon) icon.className = 'fa-solid fa-pause text-xs';
+
+            currentAudio.onended = () => {
+                if (icon) icon.className = 'fa-solid fa-play text-xs';
+                currentAudio = null;
+            };
+        }
+
         function renderResults(items) {
             resultsContainer.innerHTML = "";
             resultsCount.textContent = `${items.length} item(s)`;
@@ -262,23 +302,49 @@
 
             items.forEach(item => {
                 const attr = item.attributes || {};
-                const artworkUrl = attr.artwork ? attr.artwork.url.replace('{w}', '250').replace('{h}', '250') : '';
+                const artworkUrl = attr.artwork ? attr.artwork.url.replace('{w}', '300').replace('{h}', '300') : '';
+                const previewUrl = attr.previews?.[0]?.url || '';
+                const durationMin = attr.durationInMillis ? `${Math.floor(attr.durationInMillis / 60000)}:${Math.floor((attr.durationInMillis % 60000) / 1000).toString().padStart(2, '0')}` : '';
 
                 const card = document.createElement("div");
-                card.className = "bg-zinc-900 border border-zinc-800/80 rounded-xl p-3 flex gap-3 items-center hover:border-zinc-700 transition cursor-pointer group";
+                card.className = "bg-zinc-900 border border-zinc-800/80 rounded-xl p-3 flex gap-3 items-center hover:border-zinc-700 transition cursor-pointer group relative";
                 
                 card.innerHTML = `
-                    ${artworkUrl ? `<img src="${artworkUrl}" class="w-14 h-14 rounded-lg object-cover bg-zinc-950 flex-shrink-0 shadow">` : `<div class="w-14 h-14 rounded-lg bg-zinc-800 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-music text-zinc-600"></i></div>`}
-                    <div class="flex-grow min-w-0">
-                        <h4 class="font-bold text-xs text-white truncate group-hover:text-rose-400 transition">${attr.name || 'Untitled'}</h4>
+                    <div class="relative w-14 h-14 flex-shrink-0">
+                        ${artworkUrl ? `<img src="${artworkUrl}" class="w-14 h-14 rounded-lg object-cover bg-zinc-950 shadow">` : `<div class="w-14 h-14 rounded-lg bg-zinc-800 flex items-center justify-center"><i class="fa-solid fa-music text-zinc-600"></i></div>`}
+                        ${previewUrl ? `
+                            <button class="preview-btn absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-lg transition text-white">
+                                <i class="fa-solid fa-play text-xs"></i>
+                            </button>
+                        ` : ''}
+                    </div>
+
+                    <div class="flex-grow min-w-0 space-y-0.5">
+                        <div class="flex items-center justify-between gap-2">
+                            <h4 class="font-bold text-xs text-white truncate group-hover:text-rose-400 transition">${attr.name || 'Untitled'}</h4>
+                            ${durationMin ? `<span class="text-[10px] font-mono text-zinc-500 flex-shrink-0">${durationMin}</span>` : ''}
+                        </div>
                         <p class="text-[11px] text-zinc-400 truncate">${attr.artistName || attr.curatorName || 'Unknown Artist'}</p>
-                        <div class="flex items-center gap-2 mt-1">
+                        <p class="text-[10px] text-zinc-500 truncate">${attr.albumName || attr.genreNames?.[0] || ''}</p>
+                        
+                        <div class="flex items-center gap-2 pt-1">
                             <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400">${item.type}</span>
                             <span class="text-[9px] font-mono text-zinc-500">ID: ${item.id}</span>
+                            ${attr.hasLyrics ? `<span class="text-[8px] font-bold px-1 rounded bg-rose-950 text-rose-300 border border-rose-800/50">LYRICS</span>` : ''}
                         </div>
                     </div>
                 `;
 
+                // Quick Play Button Click
+                const playBtn = card.querySelector('.preview-btn');
+                if (playBtn) {
+                    playBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        playPreview(previewUrl, playBtn);
+                    };
+                }
+
+                // Card Payload Inspect Click
                 card.onclick = () => {
                     jsonViewer.textContent = JSON.stringify(item, null, 2);
                 };
@@ -293,7 +359,7 @@
             showStatus("JSON copied to clipboard!", "success");
         };
 
-        // Event Listeners
+        // Event Handlers
         searchBtn.onclick = handleSearch;
         searchInput.onkeypress = (e) => { if (e.key === "Enter") handleSearch(); };
     </script>
