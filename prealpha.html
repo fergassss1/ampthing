@@ -167,53 +167,73 @@
     </main>
 
     <script>
-        const WORKER_ENDPOINT = "https://amphoreus.ejpoacc.workers.dev";
+       const WORKER_ENDPOINT = "https://amphoreus.ejpoacc.workers.dev";
 
-        async function performSearch() {
-            const query = document.getElementById("searchInput").value.trim();
-            if (!query) return;
+async function performSearch() {
+    const query = document.getElementById("searchInput").value.trim();
+    if (!query) return;
 
-            const grid = document.getElementById("resultsGrid");
-            grid.innerHTML = '<div class="status-message">Loading catalog results...</div>';
+    const grid = document.getElementById("resultsGrid");
+    grid.innerHTML = '<div class="status-message">Loading catalog results...</div>';
 
-            try {
-                const res = await fetch(`${WORKER_ENDPOINT}/v1/catalog/us/search?term=${encodeURIComponent(query)}&types=albums,songs`);
-                const data = await res.json();
-                renderResults(data.results);
-            } catch (err) {
-                console.error("Fetch error:", err);
-                grid.innerHTML = '<div class="status-message" style="color: var(--accent-red);">Failed to connect to proxy endpoint.</div>';
-            }
-        }
+    try {
+        const res = await fetch(`${WORKER_ENDPOINT}/v1/catalog/us/search?term=${encodeURIComponent(query)}&types=albums,songs`);
+        const data = await res.json();
+        
+        // Extract albums and songs safely
+        const albums = data.results?.albums?.data || [];
+        const songs = data.results?.songs?.data || [];
 
-        function renderResults(results) {
-            const grid = document.getElementById("resultsGrid");
-            grid.innerHTML = "";
+        renderResults(albums, songs);
+    } catch (err) {
+        console.error("Fetch error:", err);
+        grid.innerHTML = '<div class="status-message" style="color: var(--accent-red);">Failed to connect to proxy endpoint.</div>';
+    }
+}
 
-            const albums = results?.albums?.data || [];
-            if (albums.length === 0) {
-                grid.innerHTML = '<div class="status-message">No results found.</div>';
-                return;
-            }
+function renderResults(albums, songs) {
+    const grid = document.getElementById("resultsGrid");
+    grid.innerHTML = "";
 
-            albums.forEach(album => {
-                const attrs = album.attributes;
-                const artworkUrl = attrs.artwork.url.replace("{w}", "600").replace("{h}", "600");
+    if (albums.length === 0 && songs.length === 0) {
+        grid.innerHTML = '<div class="status-message">No results found.</div>';
+        return;
+    }
 
-                const card = document.createElement("div");
-                card.className = "card";
-                card.innerHTML = `
-                    <img src="${artworkUrl}" alt="${attrs.name}">
-                    <div class="title">${attrs.name}</div>
-                    <div class="subtitle">${attrs.artistName}</div>
-                `;
-                grid.appendChild(card);
-            });
-        }
+    // Render Albums
+    albums.forEach(album => {
+        const attrs = album.attributes;
+        const artworkUrl = attrs.artwork.url.replace("{w}", "600").replace("{h}", "600");
 
-        document.getElementById("searchInput").addEventListener("keypress", (e) => {
-            if (e.key === "Enter") performSearch();
-        });
+        const card = document.createElement("div");
+        card.className = "card";
+        card.innerHTML = `
+            <img src="${artworkUrl}" alt="${attrs.name}">
+            <div class="title">${attrs.name}</div>
+            <div class="subtitle">Album • ${attrs.artistName}</div>
+        `;
+        grid.appendChild(card);
+    });
+
+    // Render Songs
+    songs.forEach(song => {
+        const attrs = song.attributes;
+        const artworkUrl = attrs.artwork.url.replace("{w}", "600").replace("{h}", "600");
+
+        const card = document.createElement("div");
+        card.className = "card";
+        card.innerHTML = `
+            <img src="${artworkUrl}" alt="${attrs.name}">
+            <div class="title">${attrs.name}</div>
+            <div class="subtitle">Song • ${attrs.artistName}</div>
+        `;
+        grid.appendChild(card);
+    });
+}
+
+document.getElementById("searchInput").addEventListener("keypress", (e) => {
+    if (e.key === "Enter") performSearch();
+});
     </script>
 </body>
 </html>
