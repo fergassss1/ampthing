@@ -39,7 +39,7 @@
                 </div>
                 <div>
                     <h1 class="font-bold tracking-tight text-white leading-none text-lg">AMP Explorer</h1>
-                    <span class="text-xs text-zinc-400">Apple Music Asset & Metadata Extractor</span>
+                    <span class="text-xs text-zinc-400">Apple Music Asset & Design Extractor</span>
                 </div>
             </div>
 
@@ -58,7 +58,7 @@
             <div class="flex flex-col sm:flex-row gap-2.5">
                 <div class="relative flex-grow">
                     <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 text-sm"></i>
-                    <input type="text" id="searchInput" placeholder="Paste Apple Music URL or search term..." 
+                    <input type="text" id="searchInput" placeholder="Paste Apple Music album URL or search term..." 
                            class="w-full bg-zinc-900/90 border border-zinc-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 transition">
                 </div>
                 
@@ -245,7 +245,6 @@
         const cancelModalBtn = document.getElementById("cancelModalBtn");
         const saveTokenBtn = document.getElementById("saveTokenBtn");
         const tokenInput = document.getElementById("tokenInput");
-        const proxyUrlInput = document.getItem ? null : document.getElementById("proxyUrlInput");
 
         // Load Stored Settings
         tokenInput.value = localStorage.getItem("amusic_token") || "";
@@ -357,7 +356,6 @@
 
             const attr = item.attributes || {};
             const artwork = attr.artwork || {};
-            const artwork5000 = artwork.url ? artwork.url.replace('{w}', '5000').replace('{h}', '5000') : '';
             const artwork600 = artwork.url ? artwork.url.replace('{w}', '600').replace('{h}', '600') : '';
             
             const year = attr.releaseDate ? attr.releaseDate.split('-')[0] : '2026';
@@ -403,7 +401,7 @@
                             <h2 class="text-2xl sm:text-3xl font-bold text-white tracking-tight leading-snug truncate">${attr.name || 'Untitled'}</h2>
                             <h3 class="text-base font-semibold text-rose-400 truncate">${attr.artistName || 'Unknown Artist'}</h3>
                             
-                            <div class="flex items-center justify-center sm:justify-start gap-2 text-xs text-zinc-400 font-medium">
+                            <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2 text-xs text-zinc-400 font-medium">
                                 <span>${item.type === 'albums' ? 'EP' : 'Track'}</span>
                                 <span>•</span>
                                 <span>${year}</span>
@@ -562,9 +560,9 @@
             const links = [
                 { label: "High-Res Artwork (5000x5000px)", url: artwork5000 },
                 { label: "Square Master Stream (.m3u8)", url: squareM3u8 },
-                { label: "Square Motion Video (.mp4)", url: squareM3u8 ? squareM3u8.replace(/\.m3u8$/, '-.mp4') : '' },
+                { label: "Square Motion Video (-.mp4)", url: squareM3u8 ? squareM3u8.replace(/\.m3u8$/, '-.mp4') : '' },
                 { label: "Tall Master Stream (.m3u8)", url: tallM3u8 || squareM3u8?.replace('Square', 'Tall') },
-                { label: "Tall Motion Video (.mp4)", url: tallM3u8 ? tallM3u8.replace(/\.m3u8$/, '-.mp4') : squareM3u8?.replace('Square', 'Tall').replace(/\.m3u8$/, '-.mp4') }
+                { label: "Tall Motion Video (-.mp4)", url: tallM3u8 ? tallM3u8.replace(/\.m3u8$/, '-.mp4') : squareM3u8?.replace('Square', 'Tall').replace(/\.m3u8$/, '-.mp4') }
             ];
 
             links.forEach(item => {
