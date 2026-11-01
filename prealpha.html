@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apple Music AMP Explorer</title>
+    <style>
+        :root {
+            --bg-color: #000000;
+            --card-bg: #1c1c1e;
+            --accent-red: #fa233b;
+            --text-primary: #ffffff;
+            --text-secondary: #8e8e93;
+            --border-color: #2c2c2e;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 20px 32px;
+            background-color: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(20px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        header svg {
+            fill: var(--accent-red);
+            width: 28px;
+            height: 28px;
+        }
+
+        .logo-text {
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        main {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 32px 20px;
+        }
+
+        .search-container {
+            margin-bottom: 40px;
+        }
+
+        .search-box {
+            display: flex;
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 6px 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .search-box input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text-primary);
+            font-size: 1rem;
+            padding: 10px;
+        }
+
+        .search-box button {
+            background: var(--accent-red);
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            padding: 0 20px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .search-box button:hover {
+            opacity: 0.85;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 24px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            transition: transform 0.2s;
+        }
+
+        .card:hover {
+            transform: scale(1.02);
+        }
+
+        .card img {
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 8px;
+            object-fit: cover;
+        }
+
+        .title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-top: 10px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .subtitle {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .status-message {
+            grid-column: 1 / -1;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 1rem;
+            padding: 40px 0;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <svg viewBox="0 0 24 24">
+            <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+        </svg>
+        <div class="logo-text">Apple Music AMP Explorer</div>
+    </header>
+
+    <main>
+        <div class="search-container">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Search albums or songs...">
+                <button onclick="performSearch()">Search</button>
+            </div>
+        </div>
+
+        <div class="results-grid" id="resultsGrid">
+            <div class="status-message">Enter a search query to explore catalog metadata.</div>
+        </div>
+    </main>
+
+    <script>
+        const WORKER_ENDPOINT = "https://amphoreus.ejpoacc.workers.dev";
+
+        async function performSearch() {
+            const query = document.getElementById("searchInput").value.trim();
+            if (!query) return;
+
+            const grid = document.getElementById("resultsGrid");
+            grid.innerHTML = '<div class="status-message">Loading catalog results...</div>';
+
+            try {
+                const res = await fetch(`${WORKER_ENDPOINT}/v1/catalog/us/search?term=${encodeURIComponent(query)}&types=albums,songs`);
+                const data = await res.json();
+                renderResults(data.results);
+            } catch (err) {
+                console.error("Fetch error:", err);
+                grid.innerHTML = '<div class="status-message" style="color: var(--accent-red);">Failed to connect to proxy endpoint.</div>';
+            }
+        }
+
+        function renderResults(results) {
+            const grid = document.getElementById("resultsGrid");
+            grid.innerHTML = "";
+
+            const albums = results?.albums?.data || [];
+            if (albums.length === 0) {
+                grid.innerHTML = '<div class="status-message">No results found.</div>';
+                return;
+            }
+
+            albums.forEach(album => {
+                const attrs = album.attributes;
+                const artworkUrl = attrs.artwork.url.replace("{w}", "600").replace("{h}", "600");
+
+                const card = document.createElement("div");
+                card.className = "card";
+                card.innerHTML = `
+                    <img src="${artworkUrl}" alt="${attrs.name}">
+                    <div class="title">${attrs.name}</div>
+                    <div class="subtitle">${attrs.artistName}</div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        document.getElementById("searchInput").addEventListener("keypress", (e) => {
+            if (e.key === "Enter") performSearch();
+        });
+    </script>
+</body>
+</html>
