@@ -191,12 +191,21 @@
             gap: 24px;
         }
 
+        .artwork-container {
+            position: relative;
+        }
+
         .artwork-container img {
             width: 100%;
             aspect-ratio: 1;
             border-radius: 12px;
             cursor: pointer;
             object-fit: cover;
+            transition: opacity 0.2s;
+        }
+
+        .artwork-container img:hover {
+            opacity: 0.9;
         }
 
         .meta-header h2 {
@@ -239,7 +248,6 @@
 
         .badge-img {
             height: 18px;
-            /* Recolor dark/black SVGs to match #FAFFD6 main text tint */
             filter: invert(98%) sepia(18%) saturate(415%) hue-rotate(24deg) brightness(105%) contrast(104%);
         }
 
@@ -305,6 +313,123 @@
             width: 60px;
         }
 
+        /* Artwork Tool Modal Window */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(4px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .artwork-tool-card {
+            background-color: var(--bg-cards);
+            border-radius: 16px;
+            padding: 24px 28px;
+            width: 360px;
+            box-shadow: 0 16px 40px rgba(0,0,0,0.6);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            position: relative;
+        }
+
+        .artwork-tool-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .artwork-tool-logo {
+            height: 24px;
+        }
+
+        .artwork-tool-header .close-btn {
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 20px;
+        }
+
+        .artwork-tool-header .close-btn:hover {
+            color: var(--text-main);
+        }
+
+        .artwork-section-label {
+            font-family: var(--font-branding);
+            font-size: 1.1rem;
+            font-weight: 800;
+            margin-bottom: 8px;
+            color: var(--text-main);
+        }
+
+        .artwork-format-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .artwork-item-row {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .artwork-item-row img, .artwork-item-row video {
+            width: 64px;
+            height: 64px;
+            border-radius: 8px;
+            object-fit: cover;
+        }
+
+        .artwork-item-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .artwork-item-name {
+            font-family: var(--font-branding);
+            font-size: 0.9rem;
+            font-weight: 800;
+        }
+
+        .artwork-item-res {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .artwork-item-limit {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .artwork-item-download {
+            margin-left: auto;
+            color: var(--text-link);
+            cursor: pointer;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+        }
+
         /* Toast Notifications */
         .toast-error {
             background-color: var(--toast-error-bg);
@@ -350,8 +475,8 @@
 
     <header>
         <div class="brand-container">
-            <img src="assets/branding/logo.svg" alt="metagetta" class="metagetta">
-            <img src="assets/branding/description.svg" alt="music metadata tool" class="apple music metadata tool">
+            <img src="assets/branding/logo.svg" alt="metagetta" class="brand-logo-img">
+            <img src="assets/branding/branding.svg" alt="music metadata tool" class="brand-desc-img">
         </div>
         <div class="header-actions">
             <span class="material-symbols-outlined">help</span>
@@ -385,11 +510,73 @@
         <div class="detail-view" id="detailView"></div>
     </div>
 
+    <!-- Artwork Tool Modal Popup -->
+    <div class="modal-overlay" id="artworkToolModal" onclick="closeArtworkTool(event)">
+        <div class="artwork-tool-card" onclick="event.stopPropagation()">
+            <div class="artwork-tool-header">
+                <img src="assets/branding/artworktool.svg" alt="artworktool" class="artwork-tool-logo">
+                <span class="material-symbols-outlined close-btn" onclick="closeArtworkTool()">close</span>
+            </div>
+
+            <!-- Static Section -->
+            <div>
+                <div class="artwork-format-header">
+                    <span>STATIC</span>
+                    <span>WEBP / JPG</span>
+                </div>
+                <div class="artwork-item-row">
+                    <img id="modalStaticImg" src="" alt="Static Cover">
+                    <div class="artwork-item-meta">
+                        <div class="artwork-item-name">Static</div>
+                        <div class="artwork-item-res" id="modalStaticRes">3000x3000</div>
+                        <div class="artwork-item-limit">Max. 1080p 600p</div>
+                    </div>
+                    <a id="modalStaticDl" class="artwork-item-download" target="_blank" download>
+                        <span class="material-symbols-outlined">download</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Animated Section (If Available) -->
+            <div id="modalAnimatedSection" style="display: none;">
+                <div class="artwork-format-header">
+                    <span>ANIMATED</span>
+                    <span>M3U8 / MP4</span>
+                </div>
+                
+                <div class="artwork-item-row" id="rowAnimatedSquare" style="display: none;">
+                    <video id="modalAnimSquareVid" autoplay loop muted playsinline></video>
+                    <div class="artwork-item-meta">
+                        <div class="artwork-item-name">Square</div>
+                        <div class="artwork-item-res">2160x2160</div>
+                        <div class="artwork-item-limit">Max. 1080p 600p</div>
+                    </div>
+                    <a id="modalAnimSquareDl" class="artwork-item-download" target="_blank" download>
+                        <span class="material-symbols-outlined">download</span>
+                    </a>
+                </div>
+
+                <div class="artwork-item-row" id="rowAnimatedTall" style="display: none;">
+                    <video id="modalAnimTallVid" autoplay loop muted playsinline></video>
+                    <div class="artwork-item-meta">
+                        <div class="artwork-item-name">Tall</div>
+                        <div class="artwork-item-res">2048x2732</div>
+                        <div class="artwork-item-limit">Max. 1080p 600p</div>
+                    </div>
+                    <a id="modalAnimTallDl" class="artwork-item-download" target="_blank" download>
+                        <span class="material-symbols-outlined">download</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Error Toast Markup -->
     <div id="toastContainer"></div>
 
     <script>
         const WORKER_ENDPOINT = "https://amphoreus.ejpoacc.workers.dev";
+        let currentActiveAlbum = null;
 
         function formatDuration(ms) {
             if (!ms) return "--:--";
@@ -414,6 +601,57 @@
             setTimeout(() => {
                 toastContainer.innerHTML = "";
             }, 5000);
+        }
+
+        /* Modal Artwork Tool Handlers */
+        function openArtworkTool() {
+            if (!currentActiveAlbum) return;
+            const attrs = currentActiveAlbum.attributes;
+            const rawArtworkUrl = attrs.artwork?.url || "";
+
+            // Static 3000x3000 image resolution replacement
+            const highResImg = rawArtworkUrl.replace("{w}", "3000").replace("{h}", "3000").replace("{f}", "jpg");
+            const thumbImg = rawArtworkUrl.replace("{w}", "200").replace("{h}", "200");
+
+            document.getElementById("modalStaticImg").src = thumbImg;
+            document.getElementById("modalStaticDl").href = highResImg;
+            document.getElementById("modalStaticRes").textContent = `${attrs.artwork?.width || 3000}x${attrs.artwork?.height || 3000}`;
+
+            // Check for animated artwork video assets
+            const editorialVideo = attrs.editorialVideo;
+            const animSection = document.getElementById("modalAnimatedSection");
+            const rowSquare = document.getElementById("rowAnimatedSquare");
+            const rowTall = document.getElementById("rowAnimatedTall");
+
+            let hasAnimated = false;
+
+            if (editorialVideo?.motionSquare?.video) {
+                hasAnimated = true;
+                rowSquare.style.display = "flex";
+                document.getElementById("modalAnimSquareVid").src = editorialVideo.motionSquare.video;
+                document.getElementById("modalAnimSquareDl").href = editorialVideo.motionSquare.video;
+            } else {
+                rowSquare.style.display = "none";
+            }
+
+            if (editorialVideo?.motionDetailTall?.video) {
+                hasAnimated = true;
+                rowTall.style.display = "flex";
+                document.getElementById("modalAnimTallVid").src = editorialVideo.motionDetailTall.video;
+                document.getElementById("modalAnimTallDl").href = editorialVideo.motionDetailTall.video;
+            } else {
+                rowTall.style.display = "none";
+            }
+
+            animSection.style.display = hasAnimated ? "block" : "none";
+
+            document.getElementById("artworkToolModal").classList.add("active");
+        }
+
+        function closeArtworkTool(e) {
+            if (!e || e.target.id === "artworkToolModal" || e.target.classList.contains("close-btn")) {
+                document.getElementById("artworkToolModal").classList.remove("active");
+            }
         }
 
         async function executeSearch() {
@@ -481,8 +719,10 @@
                 
                 if (data.data && data.data.length > 0) {
                     if (type === "albums") {
+                        currentActiveAlbum = data.data[0];
                         renderAlbumDetail(data.data[0]);
                     } else {
+                        currentActiveAlbum = null;
                         renderGenericDetail(data.data[0], type);
                     }
                 }
@@ -575,8 +815,8 @@
 
             detailView.innerHTML = `
                 <div class="album-header-card">
-                    <div class="artwork-container">
-                        <img src="${artworkUrl}" alt="${attrs.name}">
+                    <div class="artwork-container" onclick="openArtworkTool()">
+                        <img src="${artworkUrl}" alt="${attrs.name}" title="Click to open Artwork Tool">
                     </div>
                     <div class="meta-header">
                         <h2>${attrs.name}</h2>
