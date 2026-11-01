@@ -304,8 +304,8 @@
 
     <header>
         <div class="brand-container">
-            <img src="/assets/branding/logo.svg" alt="metagetta" class="brand-logo-img">
-            <img src="/assets/branding/branding.svg" alt="music metadata tool" class="brand-desc-img">
+            <img src="/ampthing/assets/branding/logo.svg" alt="metagetta" class="brand-logo-img">
+            <img src="/ampthing/assets/branding/branding.svg" alt="music metadata tool" class="brand-desc-img">
         </div>
         <div class="header-actions">
             <span class="material-symbols-outlined">help</span>
@@ -442,13 +442,13 @@
             const audioTraits = attrs.audioTraits || [];
             let badgesHtml = "";
             if (audioTraits.includes("lossy-stereo") || audioTraits.includes("lossless")) {
-                badgesHtml += `<img src="/assets/badges/lossless.svg" class="badge-img" alt="Lossless">`;
+                badgesHtml += `<img src="/ampthing/assets/badges/lossless.svg" class="badge-img" alt="Lossless">`;
             }
             if (audioTraits.includes("hi-res-lossless")) {
-                badgesHtml += `<img src="/assets/badges/hires.svg" class="badge-img" alt="Hi-Res Lossless">`;
+                badgesHtml += `<img src="/ampthing/assets/badges/hires.svg" class="badge-img" alt="Hi-Res Lossless">`;
             }
             if (audioTraits.includes("spatial") || audioTraits.includes("atmos")) {
-                badgesHtml += `<img src="/assets/badges/dolby.svg" class="badge-img" alt="Dolby Atmos">`;
+                badgesHtml += `<img src="/ampthing/assets/badges/dolby.svg" class="badge-img" alt="Dolby Atmos">`;
             }
 
             // Tracklist Table Generation
