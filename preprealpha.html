@@ -586,8 +586,8 @@
             <!-- Animated Section (If Available) -->
             <div id="modalAnimatedSection" style="display: none;">
                 <div class="artwork-format-header">
-                    <span>ANIMATED ARTWORK</span>
-                    <span>M3U8 / STREAM</span>
+                    <span>animated artwork</span>
+                    <span>m3u8 / mp4</span>
                 </div>
                 
                 <!-- Motion Square 1x1 -->
@@ -595,7 +595,7 @@
                     <img id="modalSquarePreview" src="" alt="Square Preview">
                     <div class="artwork-item-meta">
                         <div class="artwork-item-name">Square (1:1)</div>
-                        <div class="artwork-item-res" id="modalSquareRes">3840x3840</div>
+                        <div class="artwork-item-res" id="modalSquareRes">2160x2160</div>
                         <div class="artwork-item-limit">Motion Video Stream</div>
                     </div>
                     <div class="artwork-actions">
@@ -665,7 +665,7 @@
             document.getElementById("modalStaticRes").textContent = `${size}x${size}`;
         }
 
-        /* Modal Artwork Tool Handlers */
+                /* Modal Artwork Tool Handlers */
         function openArtworkTool() {
             if (!currentActiveAlbum) return;
             const attrs = currentActiveAlbum.attributes;
@@ -676,53 +676,53 @@
             document.getElementById("modalStaticImg").src = thumbImg;
             updateStaticUrl();
 
-            // Check for animated artwork video assets from editorialVideo
-            const editorialVideo = attrs.editorialVideo || {};
+            // Check for editorialArtwork assets from Apple Music payload
+            const editorialArtwork = attrs.editorialArtwork || {};
             const animSection = document.getElementById("modalAnimatedSection");
             const rowSquare = document.getElementById("rowAnimatedSquare");
             const rowTall = document.getElementById("rowAnimatedTall");
 
-            let hasAnimated = false;
+            let hasEditorialArtwork = false;
 
-            // Check Square Video (1x1)
-            const motionSquare = editorialVideo.motionSquareVideo1x1 || editorialVideo.motionDetailSquare;
-            if (motionSquare && motionSquare.video) {
-                hasAnimated = true;
+            // Check Square Editorial Artwork (e.g., motionSquareSquare, square, etc.)
+            const squareArt = editorialArtwork.motionSquareSquare || editorialArtwork.square || editorialArtwork.banner;
+            if (squareArt && squareArt.url) {
+                hasEditorialArtwork = true;
                 rowSquare.style.display = "flex";
                 
-                const previewUrl = motionSquare.previewFrame?.url 
-                    ? motionSquare.previewFrame.url.replace("{w}", "200").replace("{h}", "200") 
-                    : thumbImg;
-                document.getElementById("modalSquarePreview").src = previewUrl;
-                document.getElementById("modalSquareOpen").href = motionSquare.video;
+                const previewUrl = squareArt.url.replace("{w}", "200").replace("{h}", "200");
+                const highResUrl = squareArt.url.replace("{w}", "3840").replace("{h}", "3840").replace("{f}", "jpg");
                 
-                const w = motionSquare.previewFrame?.width || 3840;
-                const h = motionSquare.previewFrame?.height || 3840;
+                document.getElementById("modalSquarePreview").src = previewUrl;
+                document.getElementById("modalSquareOpen").href = highResUrl;
+                
+                const w = squareArt.width || 3840;
+                const h = squareArt.height || 3840;
                 document.getElementById("modalSquareRes").textContent = `${w}x${h}`;
             } else {
                 rowSquare.style.display = "none";
             }
 
-            // Check Tall Video (3x4)
-            const motionTall = editorialVideo.motionTallVideo3x4 || editorialVideo.motionDetailTall;
-            if (motionTall && motionTall.video) {
-                hasAnimated = true;
+            // Check Tall Editorial Artwork (e.g., motionTallTall, tall, etc.)
+            const tallArt = editorialArtwork.motionTallTall || editorialArtwork.tall;
+            if (tallArt && tallArt.url) {
+                hasEditorialArtwork = true;
                 rowTall.style.display = "flex";
                 
-                const previewUrl = motionTall.previewFrame?.url 
-                    ? motionTall.previewFrame.url.replace("{w}", "200").replace("{h}", "266") 
-                    : thumbImg;
-                document.getElementById("modalTallPreview").src = previewUrl;
-                document.getElementById("modalTallOpen").href = motionTall.video;
+                const previewUrl = tallArt.url.replace("{w}", "200").replace("{h}", "266");
+                const highResUrl = tallArt.url.replace("{w}", "2048").replace("{h}", "2732").replace("{f}", "jpg");
 
-                const w = motionTall.previewFrame?.width || 2048;
-                const h = motionTall.previewFrame?.height || 2732;
+                document.getElementById("modalTallPreview").src = previewUrl;
+                document.getElementById("modalTallOpen").href = highResUrl;
+
+                const w = tallArt.width || 2048;
+                const h = tallArt.height || 2732;
                 document.getElementById("modalTallRes").textContent = `${w}x${h}`;
             } else {
                 rowTall.style.display = "none";
             }
 
-            animSection.style.display = hasAnimated ? "block" : "none";
+            animSection.style.display = hasEditorialArtwork ? "block" : "none";
             document.getElementById("artworkToolModal").classList.add("active");
         }
 
