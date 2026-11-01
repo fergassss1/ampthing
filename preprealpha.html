@@ -94,9 +94,10 @@
             display: flex;
             align-items: center;
             gap: 6px;
+            flex-wrap: wrap;
         }
 
-        .storefront-selector {
+        .search-type-selector, .storefront-selector {
             color: var(--text-link);
             text-decoration: underline;
             text-underline-offset: 4px;
@@ -108,6 +109,9 @@
             font-weight: inherit;
             padding: 0;
             outline: none;
+        }
+
+        .storefront-selector {
             width: 40px;
         }
 
@@ -174,7 +178,7 @@
             color: var(--text-muted);
         }
 
-        /* Content Display Panel */
+        /* Detail Display Panel */
         .detail-view {
             display: flex;
             flex-direction: column;
@@ -214,22 +218,63 @@
             color: var(--text-muted);
         }
 
+        /* Quality Badges Header Styling */
         .badges-row {
             display: flex;
             align-items: center;
             gap: 12px;
             margin: 10px 0 14px 0;
+            flex-wrap: wrap;
+        }
+
+        .badge-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-family: var(--font-branding);
+            font-size: 0.85rem;
+            font-weight: 800;
+            color: var(--text-main);
         }
 
         .badge-img {
             height: 18px;
+            /* Recolor dark/black SVGs to match #FAFFD6 main text tint */
+            filter: invert(98%) sepia(18%) saturate(415%) hue-rotate(24deg) brightness(105%) contrast(104%);
         }
 
+        .badge-separator {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        /* Truncated Editorial Notes */
         .editorial-notes {
             font-size: 0.85rem;
             color: var(--text-muted);
             line-height: 1.4;
-            max-width: 600px;
+            max-width: 650px;
+        }
+
+        .editorial-notes-text {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .editorial-notes.expanded .editorial-notes-text {
+            display: block;
+            overflow: visible;
+        }
+
+        .notes-toggle {
+            color: var(--text-link);
+            cursor: pointer;
+            text-decoration: underline;
+            font-weight: 600;
+            margin-left: 4px;
         }
 
         /* Tracklist Styling */
@@ -251,6 +296,7 @@
         .track-qualities {
             text-align: right;
             color: var(--text-muted);
+            font-size: 0.8rem;
         }
 
         .track-duration {
@@ -304,8 +350,8 @@
 
     <header>
         <div class="brand-container">
-            <img src="/ampthing/assets/branding/logo.svg" alt="metagetta" class="brand-logo-img">
-            <img src="/ampthing/assets/branding/description.svg" alt="music metadata tool" class="brand-desc-img">
+            <img src="assets/branding/logo.svg" alt="metagetta" class="metagetta">
+            <img src="assets/branding/description.svg" alt="music metadata tool" class="apple music metadata tool">
         </div>
         <div class="header-actions">
             <span class="material-symbols-outlined">help</span>
@@ -317,8 +363,14 @@
         <!-- Sidebar Search -->
         <div class="sidebar">
             <div class="search-header">
-                search albums in 
-                <input type="text" id="storefrontInput" class="storefront-selector" value="kr" maxlength="5">
+                search 
+                <select id="searchTypeSelect" class="search-type-selector">
+                    <option value="albums">albums</option>
+                    <option value="artists">artists</option>
+                    <option value="playlists">playlists</option>
+                </select>
+                in 
+                <input type="text" id="storefrontInput" class="storefront-selector" value="us" maxlength="5">
             </div>
             
             <div class="search-input-box">
@@ -330,9 +382,7 @@
         </div>
 
         <!-- Detail View Target Panel -->
-        <div class="detail-view" id="detailView">
-            <!-- Rendered dynamically on item selection -->
-        </div>
+        <div class="detail-view" id="detailView"></div>
     </div>
 
     <!-- Error Toast Markup -->
@@ -368,7 +418,8 @@
 
         async function executeSearch() {
             const query = document.getElementById("searchInput").value.trim();
-            const storefront = document.getElementById("storefrontInput").value.trim() || "kr";
+            const storefront = document.getElementById("storefrontInput").value.trim() || "us";
+            const searchType = document.getElementById("searchTypeSelect").value;
             
             if (!query) return;
 
@@ -376,11 +427,11 @@
             resultsContainer.innerHTML = '<div style="font-size: 0.85rem; color: var(--text-muted);">Searching...</div>';
 
             try {
-                const response = await fetch(`${WORKER_ENDPOINT}/v1/catalog/${storefront}/search?term=${encodeURIComponent(query)}&types=albums`);
+                const response = await fetch(`${WORKER_ENDPOINT}/v1/catalog/${storefront}/search?term=${encodeURIComponent(query)}&types=${searchType}`);
                 const data = await response.json();
 
-                const albums = data.results?.albums?.data || [];
-                renderSearchResults(albums);
+                const results = data.results?.[searchType]?.data || [];
+                renderSearchResults(results, searchType);
             } catch (err) {
                 console.error(err);
                 resultsContainer.innerHTML = "";
@@ -388,47 +439,68 @@
             }
         }
 
-        function renderSearchResults(albums) {
+        function renderSearchResults(items, type) {
             const container = document.getElementById("searchResultsList");
             container.innerHTML = "";
 
-            if (albums.length === 0) {
+            if (items.length === 0) {
                 triggerErrorToast("No results found for query", "404");
                 return;
             }
 
-            albums.forEach(album => {
-                const attrs = album.attributes;
+            items.forEach(item => {
+                const attrs = item.attributes;
                 const artworkUrl = attrs.artwork?.url?.replace("{w}", "120").replace("{h}", "120") || "";
 
-                const item = document.createElement("div");
-                item.className = "result-item";
-                item.onclick = () => fetchAlbumDetails(album.id);
+                const row = document.createElement("div");
+                row.className = "result-item";
+                row.onclick = () => fetchItemDetails(item.id, type);
 
-                item.innerHTML = `
-                    <img src="${artworkUrl}" alt="${attrs.name}">
+                let subtitle = attrs.artistName || "";
+                if (attrs.releaseDate) subtitle += ` • ${attrs.releaseDate.substring(0, 4)}`;
+                if (type === "artists") subtitle = "Artist";
+                if (type === "playlists") subtitle = attrs.curatorName || "Playlist";
+
+                row.innerHTML = `
+                    <img src="${artworkUrl || 'https://via.placeholder.com/120'}" alt="${attrs.name}">
                     <div class="result-info">
                         <div class="item-title">${attrs.name}</div>
-                        <div class="item-sub">${attrs.artistName} • ${attrs.releaseDate ? attrs.releaseDate.substring(0, 4) : ''}</div>
+                        <div class="item-sub">${subtitle}</div>
                     </div>
                 `;
-                container.appendChild(item);
+                container.appendChild(row);
             });
         }
 
-        async function fetchAlbumDetails(albumId) {
-            const storefront = document.getElementById("storefrontInput").value.trim() || "kr";
+        async function fetchItemDetails(itemId, type) {
+            const storefront = document.getElementById("storefrontInput").value.trim() || "us";
             
             try {
-                const response = await fetch(`${WORKER_ENDPOINT}/v1/catalog/${storefront}/albums/${albumId}`);
+                const response = await fetch(`${WORKER_ENDPOINT}/v1/catalog/${storefront}/${type}/${itemId}`);
                 const data = await response.json();
                 
                 if (data.data && data.data.length > 0) {
-                    renderAlbumDetail(data.data[0]);
+                    if (type === "albums") {
+                        renderAlbumDetail(data.data[0]);
+                    } else {
+                        renderGenericDetail(data.data[0], type);
+                    }
                 }
             } catch (err) {
                 console.error(err);
-                triggerErrorToast("Failed to fetch album details", "500");
+                triggerErrorToast("Failed to fetch item details", "500");
+            }
+        }
+
+        function toggleEditorialNotes() {
+            const notesContainer = document.getElementById("editorialNotesContainer");
+            const btn = document.getElementById("notesToggleBtn");
+            if (notesContainer.classList.contains("expanded")) {
+                notesContainer.classList.remove("expanded");
+                btn.textContent = "More";
+            } else {
+                notesContainer.classList.add("expanded");
+                btn.textContent = "Less";
             }
         }
 
@@ -438,34 +510,68 @@
             const artworkUrl = attrs.artwork?.url?.replace("{w}", "600").replace("{h}", "600") || "";
             const tracks = album.relationships?.tracks?.data || [];
 
-            // Quality Badge Mapping
+            // Header Quality Badges with Icons + Text
             const audioTraits = attrs.audioTraits || [];
-            let badgesHtml = "";
-            if (audioTraits.includes("lossy-stereo") || audioTraits.includes("lossless")) {
-                badgesHtml += `<img src="/ampthing/assets/badges/lossless.svg" class="badge-img" alt="Lossless">`;
+            const badgeItems = [];
+            
+            if (audioTraits.includes("spatial") || audioTraits.includes("atmos")) {
+                badgeItems.push(`
+                    <span class="badge-item">
+                        <img src="assets/badges/dolby.svg" class="badge-img" alt="Dolby Atmos">
+                        Dolby Atmos
+                    </span>
+                `);
             }
             if (audioTraits.includes("hi-res-lossless")) {
-                badgesHtml += `<img src="/ampthing/assets/badges/hires.svg" class="badge-img" alt="Hi-Res Lossless">`;
-            }
-            if (audioTraits.includes("spatial") || audioTraits.includes("atmos")) {
-                badgesHtml += `<img src="/ampthing/assets/badges/dolby.svg" class="badge-img" alt="Dolby Atmos">`;
+                badgeItems.push(`
+                    <span class="badge-item">
+                        <img src="assets/badges/hires.svg" class="badge-img" alt="Hi-Res Lossless">
+                        Hi-Res Lossless
+                    </span>
+                `);
+            } else if (audioTraits.includes("lossless") || audioTraits.includes("lossy-stereo")) {
+                badgeItems.push(`
+                    <span class="badge-item">
+                        <img src="assets/badges/lossless.svg" class="badge-img" alt="Lossless">
+                        Lossless
+                    </span>
+                `);
             }
 
-            // Tracklist Table Generation
+            const badgesHtml = badgeItems.join(' <span class="badge-separator">•</span> ');
+
+            // Tracklist Table Generation with Track-level Qualities
             let tracklistRows = "";
-            tracks.forEach((track, index) => {
+            tracks.forEach(track => {
                 const tAttrs = track.attributes;
                 const trackTraits = tAttrs.audioTraits || [];
-                let traitLabel = trackTraits.length > 0 ? "Qualities" : "";
+                
+                let qualitiesDisplay = [];
+                if (trackTraits.includes("spatial") || trackTraits.includes("atmos")) qualitiesDisplay.push("Dolby Atmos");
+                if (trackTraits.includes("hi-res-lossless")) qualitiesDisplay.push("Hi-Res Lossless");
+                else if (trackTraits.includes("lossless")) qualitiesDisplay.push("Lossless");
+
+                const qualitiesText = qualitiesDisplay.join(" · ") || (tAttrs.hasHLS ? "Lossless" : "");
 
                 tracklistRows += `
                     <tr>
                         <td class="track-name">${tAttrs.name}</td>
-                        <td class="track-qualities">${traitLabel}</td>
+                        <td class="track-qualities">${qualitiesText}</td>
                         <td class="track-duration">${formatDuration(tAttrs.durationInMillis)}</td>
                     </tr>
                 `;
             });
+
+            const editorialRaw = attrs.editorialNotes?.standard || attrs.editorialNotes?.short || "";
+            let editorialHtml = "";
+            if (editorialRaw) {
+                editorialHtml = `
+                    <div class="editorial-notes" id="editorialNotesContainer">
+                        <span class="editorial-notes-text">${editorialRaw}</span>
+                        <span class="notes-toggle" id="notesToggleBtn" onclick="toggleEditorialNotes()">More</span>
+                    </div>
+                `;
+            }
 
             detailView.innerHTML = `
                 <div class="album-header-card">
@@ -481,9 +587,7 @@
                             ${badgesHtml}
                         </div>
 
-                        <div class="editorial-notes">
-                            ${attrs.editorialNotes?.standard || attrs.editorialNotes?.short || 'Editorial notes, if available. Clicking shows it bigger and lets user copy start and full note.'}
-                        </div>
+                        ${editorialHtml}
                     </div>
                 </div>
 
@@ -495,8 +599,33 @@
             `;
         }
 
+        function renderGenericDetail(item, type) {
+            const attrs = item.attributes;
+            const detailView = document.getElementById("detailView");
+            const artworkUrl = attrs.artwork?.url?.replace("{w}", "600").replace("{h}", "600") || "";
+
+            detailView.innerHTML = `
+                <div class="album-header-card">
+                    <div class="artwork-container">
+                        <img src="${artworkUrl || 'https://via.placeholder.com/600'}" alt="${attrs.name}">
+                    </div>
+                    <div class="meta-header">
+                        <h2>${attrs.name}</h2>
+                        <div class="artist-name">${attrs.artistName || attrs.curatorName || ''}</div>
+                        <div class="album-sub-meta">${type.toUpperCase()}</div>
+                    </div>
+                </div>
+            `;
+        }
+
         document.getElementById("searchInput").addEventListener("keypress", (e) => {
             if (e.key === "Enter") executeSearch();
+        });
+
+        document.getElementById("searchTypeSelect").addEventListener("change", () => {
+            if (document.getElementById("searchInput").value.trim()) {
+                executeSearch();
+            }
         });
     </script>
 </body>
