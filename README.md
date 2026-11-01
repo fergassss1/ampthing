@@ -5,6 +5,8 @@ index.html = pure ass shit
 
 alpha.html = stealing from someone it's ass anyways
 
-prealpha.html = not even working
+prealpha.html = looks ass
 
-dats the mood. pure ass
+preprealpha = better but wip and not finished and not recommended
+
+dats the mood. pure ass. you don't wanna even see it it's so fucking ugly
