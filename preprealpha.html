@@ -1,872 +1,1384 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full bg-slate-950 text-slate-100 select-none overflow-hidden">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>metagetta • music metadata tool</title>
-    
-    <!-- Google Fonts & Material Symbols -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Saira+Expanded:wght@800;900&family=Saira:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
-
+    <title>AMPThing - Classic Web Audio Workstation</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=VT323&family=Orbitron:wght@400;600;800&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- HLS.js for Apple Music HLS .m3u8 playback -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        lcd: ['VT323', 'monospace'],
+                        cyber: ['Orbitron', 'sans-serif'],
+                        sans: ['Inter', 'sans-serif']
+                    },
+                    colors: {
+                        amp: {
+                            base: '#12141c',
+                            panel: '#1b1e2e',
+                            border: '#2e344d',
+                            accent: '#00ffcc',
+                            gold: '#ffb700',
+                            led: '#00ff66',
+                            danger: '#ff3366'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        :root {
-            --bg-main: #132A0A;
-            --bg-cards: #404A29;
-            --text-main: #FAFFD6;
-            --text-muted: rgba(250, 255, 214, 0.5);
-            --text-link: #F9FFB8;
-            --text-highlight-max: #F2FF67;
-            --toast-error-bg: #4A2929;
-            --toast-error-text: #FFC0B8;
-
-            --font-branding: 'Saira Expanded', sans-serif;
-            --font-body: 'Saira', sans-serif;
+        /* Custom retro audio player styling */
+        .lcd-display {
+            background: #060e0a;
+            box-shadow: inset 0 0 10px rgba(0, 255, 102, 0.2);
         }
-
-        * {
-            box-sizing: border-box;
+        .knob-dial {
+            background: radial-gradient(circle at 30% 30%, #4a516d, #1a1d29);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.3);
         }
-
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: var(--bg-main);
-            color: var(--text-main);
-            font-family: var(--font-body);
-            -webkit-font-smoothing: antialiased;
+        .retro-button {
+            background: linear-gradient(180deg, #2b3046 0%, #171a26 100%);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.15);
         }
-
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 24px 32px;
+        .retro-button:active, .retro-button.active {
+            background: linear-gradient(180deg, #10121a 0%, #202436 100%);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.8);
+            transform: translateY(1px);
         }
-
-        .brand-container {
-            display: flex;
-            align-items: center;
-            gap: 8px;
+        /* Custom scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
         }
-
-        .brand-logo-img {
-            height: 28px;
+        ::-webkit-scrollbar-track {
+            background: #0e1017;
         }
-
-        .brand-desc-img {
+        ::-webkit-scrollbar-thumb {
+            background: #2a3045;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #00ffcc;
+        }
+        /* Slider Styling */
+        input[type=range] {
+            -webkit-appearance: none;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
             height: 16px;
-        }
-
-        .header-actions {
-            display: flex;
-            gap: 12px;
-        }
-
-        .header-actions .material-symbols-outlined {
-            color: var(--text-link);
+            width: 10px;
+            border-radius: 2px;
+            background: #00ffcc;
             cursor: pointer;
-            font-size: 20px;
+            box-shadow: 0 0 8px rgba(0,255,204,0.8);
+            margin-top: -6px;
         }
-
-        .main-layout {
-            display: grid;
-            grid-template-columns: 320px 1fr;
-            gap: 40px;
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 0 32px 32px 32px;
-        }
-
-        /* Sidebar & Search Controls */
-        .sidebar {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-
-        .search-header {
-            font-family: var(--font-branding);
-            font-size: 1.4rem;
-            font-weight: 800;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            flex-wrap: wrap;
-        }
-
-        .search-type-selector, .storefront-selector {
-            color: var(--text-link);
-            text-decoration: underline;
-            text-underline-offset: 4px;
-            cursor: pointer;
-            border: none;
-            background: transparent;
-            font-family: inherit;
-            font-size: inherit;
-            font-weight: inherit;
-            padding: 0;
-            outline: none;
-        }
-
-        .storefront-selector {
-            width: 40px;
-        }
-
-        .search-input-box {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            background: var(--bg-cards);
-            border-radius: 12px;
-            padding: 10px 14px;
-        }
-
-        .search-input-box input {
-            background: transparent;
-            border: none;
-            outline: none;
-            color: var(--text-main);
-            font-family: var(--font-body);
-            font-size: 0.9rem;
+        input[type=range]::-webkit-slider-runnable-track {
             width: 100%;
-        }
-
-        .search-input-box input::placeholder {
-            color: var(--text-muted);
-        }
-
-        .search-results-list {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-top: 8px;
-        }
-
-        .result-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 8px;
-            border-radius: 10px;
+            height: 4px;
             cursor: pointer;
-            transition: background 0.2s;
+            background: #0b0d14;
+            border-radius: 2px;
+            border: 1px solid #2a3045;
         }
-
-        .result-item:hover {
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        .result-item img {
-            width: 48px;
-            height: 48px;
-            border-radius: 6px;
-            object-fit: cover;
-        }
-
-        .result-info .item-title {
-            font-family: var(--font-branding);
-            font-size: 0.85rem;
-            font-weight: 800;
-            color: var(--text-main);
-        }
-
-        .result-info .item-sub {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-        }
-
-        /* Detail Display Panel */
-        .detail-view {
-            display: flex;
-            flex-direction: column;
-            gap: 28px;
-        }
-
-        .album-header-card {
-            display: grid;
-            grid-template-columns: 220px 1fr;
-            gap: 24px;
-        }
-
-        .artwork-container {
-            position: relative;
-        }
-
-        .artwork-container img {
-            width: 100%;
-            aspect-ratio: 1;
-            border-radius: 12px;
-            cursor: pointer;
-            object-fit: cover;
-            transition: opacity 0.2s;
-        }
-
-        .artwork-container img:hover {
-            opacity: 0.9;
-        }
-
-        .meta-header h2 {
-            font-family: var(--font-branding);
-            font-weight: 900;
-            font-size: 2rem;
-            margin: 0 0 4px 0;
-            color: var(--text-main);
-        }
-
-        .artist-name {
-            font-size: 1.1rem;
-            color: var(--text-main);
-            margin-bottom: 2px;
-        }
-
-        .album-sub-meta {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-        }
-
-        /* Quality Badges Header Styling */
-        .badges-row {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin: 10px 0 14px 0;
-            flex-wrap: wrap;
-        }
-
-        .badge-item {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            font-family: var(--font-branding);
-            font-size: 0.85rem;
-            font-weight: 800;
-            color: var(--text-main);
-        }
-
-        .badge-img {
-            height: 18px;
-            filter: invert(98%) sepia(18%) saturate(415%) hue-rotate(24deg) brightness(105%) contrast(104%);
-        }
-
-        .badge-separator {
-            color: var(--text-muted);
-            font-size: 0.85rem;
-        }
-
-        /* Truncated Editorial Notes */
-        .editorial-notes {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            line-height: 1.4;
-            max-width: 650px;
-        }
-
-        .editorial-notes-text {
-            display: -webkit-box;
-            -webkit-line-clamp: 3;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .editorial-notes.expanded .editorial-notes-text {
-            display: block;
-            overflow: visible;
-        }
-
-        .notes-toggle {
-            color: var(--text-link);
-            cursor: pointer;
-            text-decoration: underline;
-            font-weight: 600;
-            margin-left: 4px;
-        }
-
-        /* Tracklist Styling */
-        .tracklist {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .tracklist td {
-            padding: 12px 8px;
-            border-bottom: 1px solid rgba(250, 255, 214, 0.1);
-            font-size: 0.9rem;
-        }
-
-        .track-name {
-            color: var(--text-main);
-        }
-
-        .track-qualities {
-            text-align: right;
-            color: var(--text-muted);
-            font-size: 0.8rem;
-        }
-
-        .track-duration {
-            text-align: right;
-            color: var(--text-main);
-            width: 60px;
-        }
-
-        /* Artwork Tool Modal Window */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: rgba(0, 0, 0, 0.65);
-            backdrop-filter: blur(4px);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 2000;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.2s ease;
-        }
-
-        .modal-overlay.active {
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        .artwork-tool-card {
-            background-color: var(--bg-cards);
-            border-radius: 16px;
-            padding: 24px 28px;
-            width: 360px;
-            box-shadow: 0 16px 40px rgba(0,0,0,0.6);
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            position: relative;
-        }
-
-        .artwork-tool-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .artwork-tool-logo {
-            height: 24px;
-        }
-
-        .artwork-tool-header .close-btn {
-            color: var(--text-muted);
-            cursor: pointer;
-            font-size: 20px;
-        }
-
-        .artwork-tool-header .close-btn:hover {
-            color: var(--text-main);
-        }
-
-        .artwork-section-label {
-            font-family: var(--font-branding);
-            font-size: 1.1rem;
-            font-weight: 800;
-            margin-bottom: 8px;
-            color: var(--text-main);
-        }
-
-        .artwork-format-header {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            font-weight: 600;
-            margin-bottom: 12px;
-        }
-
-        .artwork-item-row {
-            display: flex;
-            gap: 16px;
-            align-items: center;
-            margin-bottom: 12px;
-        }
-
-        .artwork-item-row img, .artwork-item-row video {
-            width: 64px;
-            height: 64px;
-            border-radius: 8px;
-            object-fit: cover;
-        }
-
-        .artwork-item-meta {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-        }
-
-        .artwork-item-name {
-            font-family: var(--font-branding);
-            font-size: 0.9rem;
-            font-weight: 800;
-        }
-
-        .artwork-item-res {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-        }
-
-        .artwork-item-limit {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-        }
-
-        .artwork-item-download {
-            margin-left: auto;
-            color: var(--text-link);
-            cursor: pointer;
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-        }
-
-        /* Toast Notifications */
-        .toast-error {
-            background-color: var(--toast-error-bg);
-            color: var(--toast-error-text);
-            border-radius: 14px;
-            padding: 20px 24px;
-            display: flex;
-            align-items: flex-start;
-            gap: 16px;
-            position: fixed;
-            bottom: 32px;
-            right: 32px;
-            max-width: 440px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            z-index: 1000;
-        }
-
-        .toast-error .material-symbols-outlined {
-            font-size: 32px;
-        }
-
-        .toast-error-title {
-            font-family: var(--font-branding);
-            font-size: 1.3rem;
-            font-weight: 800;
-            margin-bottom: 4px;
-        }
-
-        .toast-error-body {
-            font-size: 0.85rem;
-            line-height: 1.3;
-        }
-
-        .toast-error-code {
-            font-size: 0.75rem;
-            opacity: 0.6;
-            margin-top: 12px;
-            text-align: right;
+        .vertical-range {
+            writing-mode: bt-lr; /* IE */
+            -webkit-appearance: slider-vertical; /* WebKit */
+            width: 8px;
+            height: 100px;
         }
     </style>
 </head>
-<body>
+<body class="h-full flex flex-col justify-between bg-slate-950 font-sans text-slate-200">
 
-    <header>
-        <div class="brand-container">
-            <img src="assets/branding/logo.svg" alt="metagetta" class="brand-logo-img">
-            <img src="assets/branding/description.svg" alt="music metadata tool" class="brand-desc-img">
+    <!-- Top Window Title Bar -->
+    <header class="bg-slate-900 border-b border-slate-800 px-4 py-2 flex justify-between items-center z-50">
+        <div class="flex items-center space-x-3">
+            <div class="w-7 h-7 rounded bg-gradient-to-tr from-cyan-500 to-emerald-400 flex items-center justify-center font-cyber font-bold text-slate-950 text-xs shadow-lg shadow-cyan-500/20">
+                AMP
+            </div>
+            <div>
+                <h1 class="font-cyber font-semibold text-sm tracking-wider text-slate-100 flex items-center gap-2">
+                    AMPThing <span class="text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">v0.9-PreAlpha</span>
+                </h1>
+            </div>
         </div>
-        <div class="header-actions">
-            <span class="material-symbols-outlined">help</span>
-            <span class="material-symbols-outlined">info</span>
+        
+        <!-- Theme & Global Actions -->
+        <div class="flex items-center space-x-3">
+            <select id="themeSelect" onchange="changeTheme(this.value)" class="bg-slate-800 border border-slate-700 text-xs text-slate-300 rounded px-2.5 py-1 focus:outline-none focus:border-cyan-500">
+                <option value="cyber">Theme: Cyber Neon</option>
+                <option value="classic">Theme: Classic Charcoal</option>
+                <option value="synthwave">Theme: Synthwave Sunset</option>
+                <option value="matrix">Theme: Matrix Terminal</option>
+            </select>
+            <button onclick="toggleArtworkModal()" class="px-2.5 py-1 text-xs rounded bg-purple-900/60 hover:bg-purple-800 border border-purple-500/50 text-purple-300 transition flex items-center gap-1.5 shadow-md shadow-purple-900/30">
+                <i class="fa-solid fa-clapperboard"></i> Motion Artwork Tool
+            </button>
+            <button onclick="toggleAudioSynthModal()" class="px-2.5 py-1 text-xs rounded bg-slate-800 border border-slate-700 hover:border-cyan-500 text-cyan-400 transition flex items-center gap-1.5">
+                <i class="fa-solid fa-keyboard"></i> Synth
+            </button>
+            <button onclick="triggerFileInput()" class="px-3 py-1 text-xs rounded bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold transition flex items-center gap-1.5 shadow-md shadow-cyan-500/20">
+                <i class="fa-solid fa-folder-open"></i> Load Track
+            </button>
+            <input type="file" id="audioFileInput" accept="audio/*" multiple class="hidden" onchange="handleFileSelect(event)">
         </div>
     </header>
 
-    <div class="main-layout">
-        <!-- Sidebar Search -->
-        <div class="sidebar">
-            <div class="search-header">
-                search 
-                <select id="searchTypeSelect" class="search-type-selector">
-                    <option value="albums">albums</option>
-                    <option value="artists">artists</option>
-                    <option value="playlists">playlists</option>
-                </select>
-                in 
-                <input type="text" id="storefrontInput" class="storefront-selector" value="us" maxlength="5">
-            </div>
+    <!-- Main Audio Workstation Grid -->
+    <main class="flex-1 overflow-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-5 max-w-[1600px] mx-auto w-full">
+        
+        <!-- LEFT PANEL: Main Player Module & Visualizer -->
+        <div class="lg:col-span-7 flex flex-col space-y-5">
             
-            <div class="search-input-box">
-                <span class="material-symbols-outlined" style="color: var(--text-muted); font-size: 18px;">search</span>
-                <input type="text" id="searchInput" placeholder="type or paste a link">
+            <!-- MAIN WINAMP STYLE CONTROLLER -->
+            <div id="playerSkinPanel" class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-2xl relative overflow-hidden backdrop-blur-sm">
+                <!-- Decorative Top Lights -->
+                <div class="flex justify-between items-center mb-4 border-b border-slate-800/80 pb-3">
+                    <div class="flex items-center space-x-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span class="text-xs font-cyber text-slate-400 uppercase tracking-widest">Master Output</span>
+                    </div>
+                    <div id="bitrateBadge" class="text-[11px] font-mono text-cyan-400 bg-cyan-950/60 border border-cyan-800/50 px-2 py-0.5 rounded">
+                        44.1kHz • 320kbps MP3
+                    </div>
+                </div>
+
+                <!-- LCD Audio Display -->
+                <div class="lcd-display rounded-lg p-4 border border-emerald-950/60 mb-5 relative">
+                    <div class="grid grid-cols-12 gap-4 items-center">
+                        <!-- Visualizer Screen -->
+                        <div class="col-span-7 h-28 relative rounded bg-slate-950/80 border border-emerald-900/40 overflow-hidden">
+                            <canvas id="visualizerCanvas" class="w-full h-full block"></canvas>
+                            <div class="absolute top-2 left-2 flex gap-1 z-10">
+                                <button onclick="setVisMode('bars')" class="vis-btn px-1.5 py-0.5 text-[9px] font-mono rounded bg-slate-800/80 text-emerald-400 border border-emerald-500/30">BARS</button>
+                                <button onclick="setVisMode('wave')" class="vis-btn px-1.5 py-0.5 text-[9px] font-mono rounded bg-slate-950 text-slate-400 border border-slate-800">WAVE</button>
+                                <button onclick="setVisMode('circle')" class="vis-btn px-1.5 py-0.5 text-[9px] font-mono rounded bg-slate-950 text-slate-400 border border-slate-800">RADIAL</button>
+                            </div>
+                        </div>
+
+                        <!-- Numeric LED & Meta -->
+                        <div class="col-span-5 flex flex-col justify-between h-28 py-1">
+                            <div>
+                                <div class="text-[10px] text-emerald-600 font-mono tracking-wider uppercase">Track Title</div>
+                                <div id="lcdTrackTitle" class="font-lcd text-xl text-emerald-400 truncate leading-tight tracking-wide">No Track Loaded</div>
+                                <div id="lcdArtist" class="text-xs font-sans text-emerald-600/80 truncate">AMPThing Studio Engine</div>
+                            </div>
+                            <div class="flex justify-between items-end">
+                        <div>
+                            <div class="text-[9px] text-emerald-600 font-mono">ELAPSED TIME</div>
+                            <div id="lcdTime" class="font-lcd text-3xl text-emerald-400 leading-none">00:00</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-[9px] text-emerald-600 font-mono">STATUS</div>
+                            <div id="lcdStatus" class="font-cyber text-xs text-amber-400 uppercase">STOPPED</div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div class="search-results-list" id="searchResultsList"></div>
+            <!-- Motion Art Preview Card in Main Player if Active -->
+            <div id="activeMotionArtCard" class="hidden rounded-lg bg-slate-950 border border-slate-800 p-3 mb-4">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-cyber text-purple-400 flex items-center gap-1.5">
+                        <i class="fa-solid fa-film"></i> Active Motion Artwork Stream
+                    </span>
+                    <button onclick="toggleArtworkModal()" class="text-[10px] text-slate-400 hover:text-white underline">
+                        Configure Quality & Open in New Tab
+                    </button>
+                </div>
+                <div class="relative w-full aspect-square max-h-48 rounded border border-purple-900/40 overflow-hidden flex justify-center bg-black">
+                    <video id="miniHlsVideo" autoplay loop muted playsinline class="h-full object-contain"></video>
+                </div>
+            </div>
+
+            <!-- Progress Seek Slider -->
+            <div class="mb-5 space-y-1">
+                    <div class="flex justify-between text-[11px] font-mono text-slate-400">
+                        <span id="currentTime">0:00</span>
+                        <span id="durationTime">0:00</span>
+                    </div>
+                    <input type="range" id="seekSlider" min="0" max="100" value="0" step="0.1" oninput="seekTrack(this.value)" class="w-full">
+                </div>
+
+                <!-- Controls Toolbar -->
+                <div class="flex flex-wrap items-center justify-between gap-4">
+                    <!-- Transport Buttons -->
+                    <div class="flex items-center space-x-2">
+                        <button onclick="prevTrack()" class="retro-button w-10 h-10 rounded-lg text-slate-300 hover:text-cyan-400 transition flex items-center justify-center text-sm" title="Previous">
+                            <i class="fa-solid fa-backward-step"></i>
+                        </button>
+                        <button id="playBtn" onclick="togglePlay()" class="retro-button w-12 h-12 rounded-xl text-cyan-400 hover:text-cyan-300 transition flex items-center justify-center text-lg border border-cyan-500/30" title="Play / Pause">
+                            <i class="fa-solid fa-play" id="playIcon"></i>
+                        </button>
+                        <button onclick="stopTrack()" class="retro-button w-10 h-10 rounded-lg text-slate-300 hover:text-rose-400 transition flex items-center justify-center text-sm" title="Stop">
+                            <i class="fa-solid fa-stop"></i>
+                        </button>
+                        <button onclick="nextTrack()" class="retro-button w-10 h-10 rounded-lg text-slate-300 hover:text-cyan-400 transition flex items-center justify-center text-sm" title="Next">
+                            <i class="fa-solid fa-forward-step"></i>
+                        </button>
+                    </div>
+
+                    <!-- Mode Toggles -->
+                    <div class="flex items-center space-x-2">
+                        <button id="shuffleBtn" onclick="toggleShuffle()" class="retro-button px-3 py-2 rounded-lg text-xs font-cyber text-slate-400 hover:text-slate-200 transition flex items-center gap-1.5" title="Toggle Shuffle">
+                            <i class="fa-solid fa-shuffle"></i> SHUFFLE
+                        </button>
+                        <button id="repeatBtn" onclick="toggleRepeat()" class="retro-button px-3 py-2 rounded-lg text-xs font-cyber text-slate-400 hover:text-slate-200 transition flex items-center gap-1.5" title="Toggle Repeat">
+                            <i class="fa-solid fa-repeat"></i> REPEAT
+                        </button>
+                    </div>
+
+                    <!-- Volume & Mute -->
+                    <div class="flex items-center space-x-3 bg-slate-950/60 border border-slate-800 rounded-lg px-3 py-2">
+                        <button onclick="toggleMute()" class="text-slate-400 hover:text-cyan-400 text-sm transition">
+                            <i id="muteIcon" class="fa-solid fa-volume-high"></i>
+                        </button>
+                        <input type="range" id="volumeSlider" min="0" max="1" value="0.8" step="0.01" oninput="setVolume(this.value)" class="w-24">
+                        <span id="volumeValue" class="font-mono text-xs text-slate-400 w-8">80%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DSP / MASTER AUDIO FX PANEL -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-cyber text-xs uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                        <i class="fa-solid fa-sliders text-cyan-400"></i> DSP Studio FX Processor
+                    </h3>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[11px] text-slate-400">Bypass FX</span>
+                        <input type="checkbox" id="fxBypass" onchange="toggleFXBypass(this.checked)" class="rounded bg-slate-800 border-slate-700 text-cyan-500 focus:ring-0">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <!-- Stereo Panner -->
+                    <div class="bg-slate-950/50 border border-slate-800/80 rounded-lg p-3 text-center">
+                        <div class="text-[10px] font-cyber text-slate-400 mb-2">STEREO PAN</div>
+                        <input type="range" id="panSlider" min="-1" max="1" value="0" step="0.05" oninput="setPan(this.value)" class="w-full">
+                        <div id="panValue" class="text-[11px] font-mono text-cyan-400 mt-1">CENTER</div>
+                    </div>
+
+                    <!-- Reverb Gain -->
+                    <div class="bg-slate-950/50 border border-slate-800/80 rounded-lg p-3 text-center">
+                        <div class="text-[10px] font-cyber text-slate-400 mb-2">3D REVERB</div>
+                        <input type="range" id="reverbSlider" min="0" max="1" value="0.15" step="0.05" oninput="setReverb(this.value)" class="w-full">
+                        <div id="reverbValue" class="text-[11px] font-mono text-cyan-400 mt-1">15%</div>
+                    </div>
+
+                    <!-- Pitch / Playback Speed -->
+                    <div class="bg-slate-950/50 border border-slate-800/80 rounded-lg p-3 text-center">
+                        <div class="text-[10px] font-cyber text-slate-400 mb-2">SPEED / PITCH</div>
+                        <input type="range" id="speedSlider" min="0.5" max="1.5" value="1.0" step="0.05" oninput="setSpeed(this.value)" class="w-full">
+                        <div id="speedValue" class="text-[11px] font-mono text-cyan-400 mt-1">1.00x</div>
+                    </div>
+
+                    <!-- Bass Boost -->
+                    <div class="bg-slate-950/50 border border-slate-800/80 rounded-lg p-3 text-center">
+                        <div class="text-[10px] font-cyber text-slate-400 mb-2">BASS BOOST</div>
+                        <input type="range" id="bassBoostSlider" min="0" max="12" value="2" step="0.5" oninput="setBassBoost(this.value)" class="w-full">
+                        <div id="bassValue" class="text-[11px] font-mono text-cyan-400 mt-1">+2.0 dB</div>
+                    </div>
+                </div>
+            </div>
+
         </div>
 
-        <!-- Detail View Target Panel -->
-        <div class="detail-view" id="detailView"></div>
-    </div>
+        <!-- RIGHT PANEL: 10-Band Equalizer & Playlist Manager -->
+        <div class="lg:col-span-5 flex flex-col space-y-5">
 
-    <!-- Artwork Tool Modal Popup -->
-    <div class="modal-overlay" id="artworkToolModal" onclick="closeArtworkTool(event)">
-        <div class="artwork-tool-card" onclick="event.stopPropagation()">
-            <div class="artwork-tool-header">
-                <img src="assets/branding/artworktool.svg" alt="artworktool" class="artwork-tool-logo">
-                <span class="material-symbols-outlined close-btn" onclick="closeArtworkTool()">close</span>
-            </div>
-
-            <!-- Static Section -->
-            <div>
-                <div class="artwork-format-header">
-                    <span>STATIC</span>
-                    <span>WEBP / JPG</span>
-                </div>
-                <div class="artwork-item-row">
-                    <img id="modalStaticImg" src="" alt="Static Cover">
-                    <div class="artwork-item-meta">
-                        <div class="artwork-item-name">Static</div>
-                        <div class="artwork-item-res" id="modalStaticRes">3000x3000</div>
-                        <div class="artwork-item-limit">Max. 1080p 600p</div>
+            <!-- 10-BAND GRAPHIC EQUALIZER -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-cyber text-xs uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-simple text-emerald-400"></i> 10-Band Graphic EQ
+                    </h3>
+                    <div class="flex items-center space-x-2">
+                        <select id="eqPresets" onchange="applyEQPreset(this.value)" class="bg-slate-950 border border-slate-800 text-[11px] text-slate-300 rounded px-2 py-0.5 focus:outline-none">
+                            <option value="flat">Preset: Flat</option>
+                            <option value="rock">Preset: Rock</option>
+                            <option value="pop">Preset: Pop</option>
+                            <option value="dance">Preset: Dance</option>
+                            <option value="vocal">Preset: Vocal Boost</option>
+                        </select>
+                        <button onclick="resetEQ()" class="text-[10px] bg-slate-800 hover:bg-slate-700 px-2 py-0.5 rounded text-slate-400">Reset</button>
                     </div>
-                    <a id="modalStaticDl" class="artwork-item-download" target="_blank" download>
-                        <span class="material-symbols-outlined">download</span>
-                    </a>
+                </div>
+
+                <!-- Sliders Grid -->
+                <div class="grid grid-cols-10 gap-1.5 pt-2 pb-1 bg-slate-950/60 border border-slate-800/80 rounded-lg p-3">
+                    <!-- Frequencies: 60, 170, 310, 600, 1K, 3K, 6K, 12K, 14K, 16K -->
+                    <script>
+                        const freqs = ['60', '170', '310', '600', '1K', '3K', '6K', '12K', '14K', '16K'];
+                        freqs.forEach((f, idx) => {
+                            document.write(`
+                                <div class="flex flex-col items-center space-y-2">
+                                    <span class="text-[9px] font-mono text-slate-500">+12</span>
+                                    <input type="range" id="eqBand_${idx}" min="-12" max="12" value="0" step="0.5" oninput="updateEQBand(${idx}, this.value)" class="vertical-range">
+                                    <span class="text-[9px] font-mono text-slate-500">-12</span>
+                                    <span class="text-[10px] font-mono text-cyan-400 mt-1">${f}</span>
+                                </div>
+                            `);
+                        });
+                    </script>
                 </div>
             </div>
 
-            <!-- Animated Section (If Available) -->
-            <div id="modalAnimatedSection" style="display: none;">
-                <div class="artwork-format-header">
-                    <span>ANIMATED</span>
-                    <span>M3U8 / MP4</span>
+            <!-- PLAYLIST MANAGER -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl flex-1 flex flex-col min-h-[320px]">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-cyber text-xs uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                        <i class="fa-solid fa-list-ul text-amber-400"></i> Playlist Queue
+                    </h3>
+                    <div class="flex items-center space-x-2">
+                        <button onclick="clearPlaylist()" class="text-[11px] font-mono text-rose-400 hover:text-rose-300 px-2 py-1 rounded bg-rose-950/40 border border-rose-900/50">
+                            Clear All
+                        </button>
+                    </div>
                 </div>
+
+                <!-- Track Search Bar -->
+                <div class="mb-3 relative">
+                    <input type="text" id="playlistSearch" placeholder="Search playlist..." onkeyup="filterPlaylist(this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-lg text-xs px-3 py-1.5 pl-8 text-slate-300 focus:outline-none focus:border-cyan-500">
+                    <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-xs text-slate-500"></i>
+                </div>
+
+                <!-- Scrollable Track List -->
+                <div id="playlistContainer" class="flex-1 bg-slate-950/80 border border-slate-800/80 rounded-lg overflow-y-auto divide-y divide-slate-800/60">
+                    <!-- Tracks populated via JS -->
+                    <div id="emptyPlaylistMsg" class="p-8 text-center text-slate-600 text-xs">
+                        <i class="fa-solid fa-music text-3xl mb-2 block text-slate-700"></i>
+                        No audio loaded yet.<br>Click <b>Load Track</b> or drag audio files here.
+                    </div>
+                </div>
+
+                <!-- Playlist Footer Info -->
+                <div class="mt-3 pt-2 border-t border-slate-800 flex justify-between items-center text-[11px] font-mono text-slate-400">
+                    <span id="playlistCount">0 tracks</span>
+                    <span id="playlistTotalDuration">00:00</span>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- FOOTER STATUS -->
+    <footer class="bg-slate-900 border-t border-slate-800 px-4 py-1.5 flex justify-between items-center text-[11px] font-mono text-slate-500">
+        <div class="flex items-center space-x-3">
+            <span>Engine: WebAudio API</span>
+            <span>•</span>
+            <span class="text-emerald-500">HLS Motion Ready</span>
+        </div>
+        <div>
+            AMPThing Audio Studio &copy; 2026
+        </div>
+    </footer>
+
+    <!-- APPLE MUSIC MOTION & STATIC ARTWORK INSPECTOR MODAL -->
+    <div id="artworkModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md hidden items-center justify-center z-50 p-4 overflow-y-auto">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-4xl w-full p-6 shadow-2xl relative my-auto">
+            <button onclick="toggleArtworkModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="flex items-center space-x-3 mb-4">
+                <div class="w-8 h-8 rounded-lg bg-purple-600/30 border border-purple-500/50 flex items-center justify-center text-purple-400">
+                    <i class="fa-solid fa-compact-disc text-base animate-spin" style="animation-duration: 8s;"></i>
+                </div>
+                <div>
+                    <h2 class="font-cyber text-base text-purple-400">Apple Music Animated & Static Artwork Inspector</h2>
+                    <p class="text-xs text-slate-400">Parse <code class="text-cyan-400 font-mono">editorialVideo</code> / iTunes API payload objects, choose resolutions, dynamic colors, and export to new tabs.</p>
+                </div>
+            </div>
+
+            <!-- Top Input & Quick Load Preset -->
+            <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 mb-6">
+                <div class="flex justify-between items-center mb-2">
+                    <label class="text-xs font-cyber text-slate-300">Paste JSON Payload or use Sample</label>
+                    <button onclick="loadSamplePayload()" class="text-xs text-cyan-400 hover:underline flex items-center gap-1 font-mono">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Load Provided Sample JSON
+                    </button>
+                </div>
+                <textarea id="artworkJsonInput" rows="4" placeholder="Paste editorialVideo JSON payload here..." class="w-full bg-slate-900 border border-slate-800 rounded-lg p-3 text-xs font-mono text-cyan-300 focus:outline-none focus:border-purple-500 mb-3 resize-none"></textarea>
+                <button onclick="parseArtworkJSON()" class="w-full py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-cyber text-xs rounded-lg shadow-lg transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-gear"></i> Parse Payload & Render Preview
+                </button>
+            </div>
+
+            <!-- Parsed Output Grid (Initially Hidden) -->
+            <div id="artworkOutputSection" class="hidden grid grid-cols-1 md:grid-cols-12 gap-6">
                 
-                <div class="artwork-item-row" id="rowAnimatedSquare" style="display: none;">
-                    <video id="modalAnimSquareVid" autoplay loop muted playsinline></video>
-                    <div class="artwork-item-meta">
-                        <div class="artwork-item-name">Square</div>
-                        <div class="artwork-item-res">2160x2160</div>
-                        <div class="artwork-item-limit">Max. 1080p 600p</div>
+                <!-- Left: Video & Preview Display -->
+                <div class="md:col-span-6 flex flex-col space-y-4">
+                    <div class="bg-slate-950 rounded-xl border border-slate-800 p-4 flex flex-col items-center">
+                        <div class="flex justify-between w-full mb-3 text-xs font-cyber text-slate-400">
+                            <span>Live Player Preview</span>
+                            <span id="currentAspectBadge" class="text-purple-400">Square (1:1)</span>
+                        </div>
+                        <div id="videoContainer" class="relative w-full aspect-square max-h-72 rounded-lg border border-slate-800 overflow-hidden flex items-center justify-center bg-black">
+                            <video id="hlsVideoPlayer" controls autoplay loop muted playsinline class="w-full h-full object-contain"></video>
+                            <img id="staticImgFallback" class="hidden w-full h-full object-contain" alt="Preview Frame">
+                        </div>
+
+                        <!-- Video Mode Selector -->
+                        <div class="grid grid-cols-2 gap-2 w-full mt-4">
+                            <button id="btnMotionSquare" onclick="selectVideoMode('square')" class="py-1.5 px-3 rounded bg-purple-950 border border-purple-500/50 text-purple-300 text-xs font-cyber">
+                                Square (1:1 / detailSquare)
+                            </button>
+                            <button id="btnMotionTall" onclick="selectVideoMode('tall')" class="py-1.5 px-3 rounded bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200 text-xs font-cyber">
+                                Tall (3:4 / detailTall)
+                            </button>
+                        </div>
                     </div>
-                    <a id="modalAnimSquareDl" class="artwork-item-download" target="_blank" download>
-                        <span class="material-symbols-outlined">download</span>
-                    </a>
+
+                    <!-- Extracted Color Palette -->
+                    <div class="bg-slate-950 rounded-xl border border-slate-800 p-4">
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="text-xs font-cyber text-slate-300">Extracted Palette Colors</h3>
+                            <button onclick="applyArtworkColorsToApp()" class="text-[11px] text-emerald-400 hover:underline flex items-center gap-1 font-mono">
+                                <i class="fa-solid fa-palette"></i> Apply Palette to AMPThing UI
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-5 gap-2 text-center text-[10px] font-mono" id="paletteColorContainer">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
                 </div>
 
-                <div class="artwork-item-row" id="rowAnimatedTall" style="display: none;">
-                    <video id="modalAnimTallVid" autoplay loop muted playsinline></video>
-                    <div class="artwork-item-meta">
-                        <div class="artwork-item-name">Tall</div>
-                        <div class="artwork-item-res">2048x2732</div>
-                        <div class="artwork-item-limit">Max. 1080p 600p</div>
+                <!-- Right: Quality Selectors & Action Buttons -->
+                <div class="md:col-span-6 flex flex-col justify-between space-y-4">
+                    
+                    <!-- Static Artwork Quality Controls -->
+                    <div class="bg-slate-950 rounded-xl border border-slate-800 p-4 space-y-3">
+                        <h3 class="text-xs font-cyber text-purple-400 flex items-center gap-1.5">
+                            <i class="fa-solid fa-image"></i> Static Artwork Configurator
+                        </h3>
+
+                        <div>
+                            <label class="text-[10px] font-cyber text-slate-400 block mb-1">Target Resolution</label>
+                            <select id="staticResSelect" onchange="updateStaticUrlPreview()" class="w-full bg-slate-900 border border-slate-700 text-xs text-slate-200 rounded px-2.5 py-1.5 font-mono">
+                                <option value="3840x3840">Original Max (3840x3840)</option>
+                                <option value="2048x2048">2K (2048x2048)</option>
+                                <option value="1400x1400" selected>High (1400x1400)</option>
+                                <option value="600x600">Standard (600x600)</option>
+                                <option value="300x300">Thumbnail (300x300)</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="text-[10px] font-cyber text-slate-400 block mb-1">Image Format Extension</label>
+                            <select id="staticFormatSelect" onchange="updateStaticUrlPreview()" class="w-full bg-slate-900 border border-slate-700 text-xs text-slate-200 rounded px-2.5 py-1.5 font-mono">
+                                <option value="bb.jpg">JPEG (.jpg)</option>
+                                <option value="bb.png">PNG (.png)</option>
+                                <option value="bb.webp">WebP (.webp)</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="text-[10px] font-cyber text-slate-400 block mb-1">Generated Static URL</label>
+                            <input type="text" id="generatedStaticUrl" readonly class="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-[11px] font-mono text-cyan-400 select-all focus:outline-none">
+                        </div>
+
+                        <div class="flex gap-2 pt-1">
+                            <button onclick="openStaticInNewTab()" class="flex-1 py-2 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-cyber transition flex items-center justify-center gap-1.5">
+                                <i class="fa-solid fa-arrow-up-right-from-square"></i> Open Image
+                            </button>
+                            <button onclick="copyToClipboard(document.getElementById('generatedStaticUrl').value)" class="py-2 px-3 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs">
+                                <i class="fa-solid fa-copy"></i>
+                            </button>
+                        </div>
                     </div>
-                    <a id="modalAnimTallDl" class="artwork-item-download" target="_blank" download>
-                        <span class="material-symbols-outlined">download</span>
-                    </a>
+
+                    <!-- Animated Video Stream Controls -->
+                    <div class="bg-slate-950 rounded-xl border border-slate-800 p-4 space-y-3">
+                        <h3 class="text-xs font-cyber text-cyan-400 flex items-center gap-1.5">
+                            <i class="fa-solid fa-circle-play"></i> Motion Stream (.m3u8) Configurator
+                        </h3>
+
+                        <div>
+                            <label class="text-[10px] font-cyber text-slate-400 block mb-1">Active Direct .m3u8 HLS Stream Link</label>
+                            <input type="text" id="generatedVideoUrl" readonly class="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-[11px] font-mono text-purple-300 select-all focus:outline-none">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2 pt-1">
+                            <button onclick="openRawVideoInNewTab()" class="py-2 rounded bg-cyan-950 hover:bg-cyan-900 border border-cyan-800/80 text-cyan-300 text-xs font-cyber transition flex items-center justify-center gap-1.5">
+                                <i class="fa-solid fa-link"></i> Raw .m3u8 Stream
+                            </button>
+                            <button onclick="openFullViewerInNewTab()" class="py-2 rounded bg-purple-950 hover:bg-purple-900 border border-purple-800/80 text-purple-300 text-xs font-cyber transition flex items-center justify-center gap-1.5">
+                                <i class="fa-solid fa-expand"></i> Styled Viewer Page
+                            </button>
+                        </div>
+                    </div>
+
                 </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- SYNTHESIZER KEYBOARD MODAL -->
+    <div id="synthModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-50 p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl relative">
+            <button onclick="toggleAudioSynthModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <h2 class="font-cyber text-base text-cyan-400 mb-1"><i class="fa-solid fa-keyboard mr-2"></i>Virtual Analog Synth Engine</h2>
+            <p class="text-xs text-slate-400 mb-4">Play keys using your mouse or computer keyboard (Keys: A, S, D, F, G, H, J, K)</p>
+            
+            <!-- Synth Controls -->
+            <div class="grid grid-cols-3 gap-3 mb-6 bg-slate-950 p-3 rounded-lg border border-slate-800">
+                <div>
+                    <label class="text-[10px] font-cyber text-slate-400 block mb-1">WAVEFORM</label>
+                    <select id="synthWaveform" class="w-full bg-slate-900 border border-slate-700 text-xs text-slate-200 rounded px-2 py-1">
+                        <option value="sine">Sine Wave</option>
+                        <option value="sawtooth" selected>Sawtooth Wave</option>
+                        <option value="square">Square Wave</option>
+                        <option value="triangle">Triangle Wave</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-[10px] font-cyber text-slate-400 block mb-1">ATTACK (Sec)</label>
+                    <input type="range" id="synthAttack" min="0.01" max="1" value="0.05" step="0.01" class="w-full">
+                </div>
+                <div>
+                    <label class="text-[10px] font-cyber text-slate-400 block mb-1">DECAY (Sec)</label>
+                    <input type="range" id="synthDecay" min="0.1" max="2" value="0.5" step="0.05" class="w-full">
+                </div>
+            </div>
+
+            <!-- Piano Keyboard -->
+            <div id="keyboard" class="flex justify-center items-end bg-slate-950 p-4 rounded-xl border border-slate-800 h-44 space-x-1 select-none">
+                <!-- Generated dynamically via JS -->
             </div>
         </div>
     </div>
 
-    <!-- Error Toast Markup -->
-    <div id="toastContainer"></div>
-
+    <!-- MAIN JAVASCRIPT APPLICATION LOGIC -->
     <script>
-        const WORKER_ENDPOINT = "https://amphoreus.ejpoacc.workers.dev";
-        let currentActiveAlbum = null;
+        // Global State & Web Audio Nodes
+        let audioCtx = null;
+        let audioElement = new Audio();
+        let sourceNode = null;
+        let analyser = null;
+        let pannerNode = null;
+        let bassBiquad = null;
+        let eqNodes = [];
+        let gainNode = null;
 
-        function formatDuration(ms) {
-            if (!ms) return "--:--";
-            const totalSeconds = Math.floor(ms / 1000);
-            const minutes = Math.floor(totalSeconds / 60);
-            const seconds = totalSeconds % 60;
-            return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-        }
+        // Audio Playlist State
+        let playlist = [];
+        let currentTrackIndex = -1;
+        let isPlaying = false;
+        let isShuffle = false;
+        let isRepeat = false;
+        let visualizerMode = 'bars';
+        let animFrameId = null;
 
-        function triggerErrorToast(message, statusCode = "404") {
-            const toastContainer = document.getElementById("toastContainer");
-            toastContainer.innerHTML = `
-                <div class="toast-error">
-                    <span class="material-symbols-outlined">error</span>
-                    <div>
-                        <div class="toast-error-title">Error</div>
-                        <div class="toast-error-body">${message}</div>
-                        <div class="toast-error-code">Code ${statusCode}</div>
-                    </div>
-                </div>
-            `;
-            setTimeout(() => {
-                toastContainer.innerHTML = "";
-            }, 5000);
-        }
+        // Apple Music Motion Artwork State & HLS Instances
+        let parsedArtworkData = null;
+        let currentAspect = 'square'; // 'square' | 'tall'
+        let hlsInstanceMain = null;
+        let hlsInstanceMini = null;
 
-        /* Modal Artwork Tool Handlers */
-        function openArtworkTool() {
-            if (!currentActiveAlbum) return;
-            const attrs = currentActiveAlbum.attributes;
-            const rawArtworkUrl = attrs.artwork?.url || "";
+        const defaultSamplePayload = {
+            "editorialVideo": {
+                "motionDetailSquare": {
+                    "previewFrame": {
+                        "bgColor": "889fa9",
+                        "hasP3": false,
+                        "height": 3840,
+                        "textColor1": "0b0b0b",
+                        "textColor2": "12100f",
+                        "textColor3": "282e31",
+                        "textColor4": "2d3133",
+                        "url": "https://is1-ssl.mzstatic.com/image/thumb/Video211/v4/d7/c1/13/d7c11351-e91f-0f12-fd82-7b989145e210/OBJECT_PROXYcdb5fdc3-8cad-4331-847e-8f9cf21b5f88_KEY_FRAME_OUTPUT_0_OBJECT_PROXYcdb5fdc3-8cad-4331-847e-8f9cf21b5f88.png/{w}x{h}bb.jpg",
+                        "width": 3840
+                    },
+                    "video": "https://mvod.itunes.apple.com/itunes-assets/HLSVideo211/v4/d7/44/4f/d7444fc1-35ea-6a38-1a90-1597ef2ea430/P1464298750_default.m3u8"
+                },
+                "motionDetailTall": {
+                    "previewFrame": {
+                        "bgColor": "443f3c",
+                        "gradient": {
+                            "color": "443f3c",
+                            "y2": 0.48
+                        },
+                        "hasP3": false,
+                        "height": 2732,
+                        "textColor1": "ffffff",
+                        "textColor2": "e5ecd9",
+                        "textColor3": "d8d0bd",
+                        "textColor4": "cdd2c1",
+                        "textGradient": [
+                            "ffffff",
+                            "e5ecd9"
+                        ],
+                        "url": "https://is1-ssl.mzstatic.com/image/thumb/Video211/v4/a1/89/b9/a189b922-7722-d0d8-84e6-43a4aba4c37d/OBJECT_PROXY73169d40-db22-47e8-8aa8-5070992b1dd1_KEY_FRAME_OUTPUT_0_OBJECT_PROXY73169d40-db22-47e8-8aa8-5070992b1dd1.png/{w}x{h}bb.jpg",
+                        "width": 2048
+                    },
+                    "video": "https://mvod.itunes.apple.com/itunes-assets/HLSVideo221/v4/3e/d8/81/3ed88107-d1ee-c93a-219b-9a94dd76ef84/P1464278358_default.m3u8"
+                }
+            }
+        };
 
-            // Static 3000x3000 image resolution replacement
-            const highResImg = rawArtworkUrl.replace("{w}", "3000").replace("{h}", "3000").replace("{f}", "jpg");
-            const thumbImg = rawArtworkUrl.replace("{w}", "200").replace("{h}", "200");
+        // Sample Audio Demo Track
+        const demoTrack = {
+            title: "Synthwave Cyber Dreams",
+            artist: "AMPThing Demo Generator",
+            url: "https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=synthwave-80s-110045.mp3",
+            duration: 165
+        };
 
-            document.getElementById("modalStaticImg").src = thumbImg;
-            document.getElementById("modalStaticDl").href = highResImg;
-            document.getElementById("modalStaticRes").textContent = `${attrs.artwork?.width || 3000}x${attrs.artwork?.height || 3000}`;
+        // Initialize Audio Context and Nodes
+        function initAudioContext() {
+            if (audioCtx) return;
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            audioCtx = new AudioContext();
 
-            // Check for animated artwork video assets
-            const editorialVideo = attrs.editorialVideo;
-            const animSection = document.getElementById("modalAnimatedSection");
-            const rowSquare = document.getElementById("rowAnimatedSquare");
-            const rowTall = document.getElementById("rowAnimatedTall");
+            // Create Audio Source
+            sourceNode = audioCtx.createMediaElementSource(audioElement);
 
-            let hasAnimated = false;
+            // Analyser Node for Visualizer
+            analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 256;
 
-            if (editorialVideo?.motionSquare?.video) {
-                hasAnimated = true;
-                rowSquare.style.display = "flex";
-                document.getElementById("modalAnimSquareVid").src = editorialVideo.motionSquare.video;
-                document.getElementById("modalAnimSquareDl").href = editorialVideo.motionSquare.video;
-            } else {
-                rowSquare.style.display = "none";
+            // Stereo Panner
+            pannerNode = audioCtx.createStereoPanner ? audioCtx.createStereoPanner() : null;
+
+            // Bass Boost Biquad Filter
+            bassBiquad = audioCtx.createBiquadFilter();
+            bassBiquad.type = "lowshelf";
+            bassBiquad.frequency.value = 150;
+            bassBiquad.gain.value = 2;
+
+            // 10 Band Equalizer
+            const eqFreqs = [60, 170, 310, 600, 1000, 3000, 6000, 12000, 14000, 16000];
+            eqNodes = eqFreqs.map(freq => {
+                const eq = audioCtx.createBiquadFilter();
+                eq.type = "peaking";
+                eq.frequency.value = freq;
+                eq.Q.value = 1.4;
+                eq.gain.value = 0;
+                return eq;
+            });
+
+            // Master Gain Node
+            gainNode = audioCtx.createGain();
+
+            // Connect Web Audio Graph Chain
+            let lastNode = sourceNode;
+            lastNode.connect(bassBiquad);
+            lastNode = bassBiquad;
+
+            // Connect EQ Filters in series
+            eqNodes.forEach(eq => {
+                lastNode.connect(eq);
+                lastNode = eq;
+            });
+
+            if (pannerNode) {
+                lastNode.connect(pannerNode);
+                lastNode = pannerNode;
             }
 
-            if (editorialVideo?.motionDetailTall?.video) {
-                hasAnimated = true;
-                rowTall.style.display = "flex";
-                document.getElementById("modalAnimTallVid").src = editorialVideo.motionDetailTall.video;
-                document.getElementById("modalAnimTallDl").href = editorialVideo.motionDetailTall.video;
-            } else {
-                rowTall.style.display = "none";
-            }
-
-            animSection.style.display = hasAnimated ? "block" : "none";
-
-            document.getElementById("artworkToolModal").classList.add("active");
+            lastNode.connect(analyser);
+            analyser.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
         }
 
-        function closeArtworkTool(e) {
-            if (!e || e.target.id === "artworkToolModal" || e.target.classList.contains("close-btn")) {
-                document.getElementById("artworkToolModal").classList.remove("active");
+        // Initialize App on DOM Ready
+        window.addEventListener('DOMContentLoaded', () => {
+            initVisualizer();
+            initSynthKeyboard();
+
+            // Load default demo track
+            addTrackToPlaylist(demoTrack.title, demoTrack.artist, demoTrack.url, demoTrack.duration);
+
+            // Audio Element Event Listeners
+            audioElement.addEventListener('timeupdate', updatePlaybackProgress);
+            audioElement.addEventListener('ended', onTrackEnded);
+            audioElement.addEventListener('loadedmetadata', () => {
+                document.getElementById('durationTime').innerText = formatTime(audioElement.duration);
+            });
+        });
+
+        // Toggle Artwork Modal
+        function toggleArtworkModal() {
+            const modal = document.getElementById('artworkModal');
+            modal.classList.toggle('hidden');
+            modal.classList.toggle('flex');
+
+            // Auto load sample if empty
+            if (!parsedArtworkData && !document.getElementById('artworkJsonInput').value.trim()) {
+                loadSamplePayload();
             }
         }
 
-        async function executeSearch() {
-            const query = document.getElementById("searchInput").value.trim();
-            const storefront = document.getElementById("storefrontInput").value.trim() || "us";
-            const searchType = document.getElementById("searchTypeSelect").value;
-            
-            if (!query) return;
+        function loadSamplePayload() {
+            document.getElementById('artworkJsonInput').value = JSON.stringify(defaultSamplePayload, null, 2);
+            parseArtworkJSON();
+        }
 
-            const resultsContainer = document.getElementById("searchResultsList");
-            resultsContainer.innerHTML = '<div style="font-size: 0.85rem; color: var(--text-muted);">Searching...</div>';
-
+        // Parse Payload JSON
+        function parseArtworkJSON() {
+            const raw = document.getElementById('artworkJsonInput').value;
             try {
-                const response = await fetch(`${WORKER_ENDPOINT}/v1/catalog/${storefront}/search?term=${encodeURIComponent(query)}&types=${searchType}`);
-                const data = await response.json();
+                let parsed = JSON.parse(raw);
+                if (parsed.editorialVideo) {
+                    parsedArtworkData = parsed.editorialVideo;
+                } else if (parsed.motionDetailSquare || parsed.motionDetailTall) {
+                    parsedArtworkData = parsed;
+                } else {
+                    alert("Valid payload structures must contain 'editorialVideo', 'motionDetailSquare', or 'motionDetailTall'.");
+                    return;
+                }
 
-                const results = data.results?.[searchType]?.data || [];
-                renderSearchResults(results, searchType);
+                document.getElementById('artworkOutputSection').classList.remove('hidden');
+                selectVideoMode('square');
+                renderActiveMotionMiniPlayer();
             } catch (err) {
-                console.error(err);
-                resultsContainer.innerHTML = "";
-                triggerErrorToast("No results/Forbidden/Empty results/ Incorrect query/Not found", "404");
+                alert("Error parsing JSON string: " + err.message);
             }
         }
 
-        function renderSearchResults(items, type) {
-            const container = document.getElementById("searchResultsList");
-            container.innerHTML = "";
+        // Select aspect ratio mode ('square' or 'tall')
+        function selectVideoMode(mode) {
+            currentAspect = mode;
+            const squareBtn = document.getElementById('btnMotionSquare');
+            const tallBtn = document.getElementById('btnMotionTall');
+            const badge = document.getElementById('currentAspectBadge');
+            const container = document.getElementById('videoContainer');
 
-            if (items.length === 0) {
-                triggerErrorToast("No results found for query", "404");
+            if (mode === 'square') {
+                squareBtn.className = "py-1.5 px-3 rounded bg-purple-950 border border-purple-500/50 text-purple-300 text-xs font-cyber";
+                tallBtn.className = "py-1.5 px-3 rounded bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200 text-xs font-cyber";
+                badge.innerText = "Square (1:1)";
+                container.className = "relative w-full aspect-square max-h-72 rounded-lg border border-slate-800 overflow-hidden flex items-center justify-center bg-black";
+            } else {
+                tallBtn.className = "py-1.5 px-3 rounded bg-purple-950 border border-purple-500/50 text-purple-300 text-xs font-cyber";
+                squareBtn.className = "py-1.5 px-3 rounded bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200 text-xs font-cyber";
+                badge.innerText = "Tall (3:4)";
+                container.className = "relative w-full aspect-[3/4] max-h-72 rounded-lg border border-slate-800 overflow-hidden flex items-center justify-center bg-black";
+            }
+
+            renderCurrentStreamAndPalette();
+        }
+
+        // Get currently active artwork object slice
+        function getActiveObj() {
+            if (!parsedArtworkData) return null;
+            if (currentAspect === 'square') {
+                return parsedArtworkData.motionDetailSquare || parsedArtworkData.motionSquareVideo1x1 || Object.values(parsedArtworkData)[0];
+            } else {
+                return parsedArtworkData.motionDetailTall || parsedArtworkData.motionTallVideo3x4 || Object.values(parsedArtworkData)[0];
+            }
+        }
+
+        // Render video/fallback image and colors
+        function renderCurrentStreamAndPalette() {
+            const activeObj = getActiveObj();
+            if (!activeObj) return;
+
+            const videoElement = document.getElementById('hlsVideoPlayer');
+            const imgFallback = document.getElementById('staticImgFallback');
+            const videoUrl = activeObj.video || activeObj.url;
+
+            // Load HLS Video Stream
+            if (videoUrl && videoUrl.includes('.m3u8')) {
+                imgFallback.classList.add('hidden');
+                videoElement.classList.remove('hidden');
+
+                if (Hls.isSupported()) {
+                    if (hlsInstanceMain) hlsInstanceMain.destroy();
+                    hlsInstanceMain = new Hls();
+                    hlsInstanceMain.loadSource(videoUrl);
+                    hlsInstanceMain.attachMedia(videoElement);
+                    hlsInstanceMain.on(Hls.Events.MANIFEST_PARSED, () => videoElement.play().catch(()=>{}));
+                } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
+                    videoElement.src = videoUrl;
+                    videoElement.play().catch(()=>{});
+                }
+            } else {
+                videoElement.classList.add('hidden');
+                imgFallback.classList.remove('hidden');
+            }
+
+            // Update Video URL field
+            document.getElementById('generatedVideoUrl').value = videoUrl || 'N/A';
+
+            // Populate Extracted Palette
+            const frame = activeObj.previewFrame || activeObj;
+            const container = document.getElementById('paletteColorContainer');
+            const colors = [];
+            if (frame.bgColor) colors.push({ label: 'Background', hex: '#' + frame.bgColor.replace('#','') });
+            if (frame.textColor1) colors.push({ label: 'Text 1', hex: '#' + frame.textColor1.replace('#','') });
+            if (frame.textColor2) colors.push({ label: 'Text 2', hex: '#' + frame.textColor2.replace('#','') });
+            if (frame.textColor3) colors.push({ label: 'Text 3', hex: '#' + frame.textColor3.replace('#','') });
+            if (frame.textColor4) colors.push({ label: 'Text 4', hex: '#' + frame.textColor4.replace('#','') });
+
+            container.innerHTML = colors.map(c => `
+                <div class="flex flex-col items-center space-y-1 bg-slate-900 p-1.5 rounded border border-slate-800">
+                    <div class="w-full h-6 rounded border border-white/10" style="background-color: ${c.hex}"></div>
+                    <span class="text-slate-400 text-[9px] truncate w-full">${c.label}</span>
+                    <span class="text-cyan-400 font-mono">${c.hex}</span>
+                </div>
+            `).join('');
+
+            updateStaticUrlPreview();
+        }
+
+        // Render dynamic motion preview thumbnail on player main panel
+        function renderActiveMotionMiniPlayer() {
+            const activeObj = getActiveObj();
+            if (!activeObj) return;
+
+            const card = document.getElementById('activeMotionArtCard');
+            const miniVideo = document.getElementById('miniHlsVideo');
+            const videoUrl = activeObj.video;
+
+            if (videoUrl && videoUrl.includes('.m3u8')) {
+                card.classList.remove('hidden');
+                if (Hls.isSupported()) {
+                    if (hlsInstanceMini) hlsInstanceMini.destroy();
+                    hlsInstanceMini = new Hls();
+                    hlsInstanceMini.loadSource(videoUrl);
+                    hlsInstanceMini.attachMedia(miniVideo);
+                } else if (miniVideo.canPlayType('application/vnd.apple.mpegurl')) {
+                    miniVideo.src = videoUrl;
+                }
+            }
+        }
+
+        // Build interpolated resolution image URL
+        function updateStaticUrlPreview() {
+            const activeObj = getActiveObj();
+            if (!activeObj) return;
+
+            const frame = activeObj.previewFrame || activeObj;
+            let rawUrl = frame.url || frame.previewFrameUrl || '';
+
+            const selectedRes = document.getElementById('staticResSelect').value;
+            const selectedFormat = document.getElementById('staticFormatSelect').value;
+            const [w, h] = selectedRes.split('x');
+
+            // Replace template parameters {w}x{h}bb.jpg
+            let formattedUrl = rawUrl
+                .replace('{w}', w)
+                .replace('{h}', h);
+
+            if (formattedUrl.includes('bb.jpg')) {
+                formattedUrl = formattedUrl.replace('bb.jpg', selectedFormat);
+            }
+
+            document.getElementById('generatedStaticUrl').value = formattedUrl;
+            document.getElementById('staticImgFallback').src = formattedUrl;
+        }
+
+        // Apply extracted JSON artwork colors directly to player skin
+        function applyArtworkColorsToApp() {
+            const activeObj = getActiveObj();
+            if (!activeObj) return;
+            const frame = activeObj.previewFrame || activeObj;
+            if (!frame.bgColor) return;
+
+            const hexBg = '#' + frame.bgColor.replace('#', '');
+            const hexText = '#' + (frame.textColor1 || 'ffffff').replace('#', '');
+
+            const panel = document.getElementById('playerSkinPanel');
+            panel.style.backgroundColor = hexBg;
+            panel.style.color = hexText;
+            panel.style.borderColor = '#' + (frame.textColor3 || '333333').replace('#', '');
+
+            alert(`Applied custom dynamic palette (${hexBg}) to AMPThing Audio Player UI!`);
+        }
+
+        // Actions: Open in New Tabs
+        function openStaticInNewTab() {
+            const url = document.getElementById('generatedStaticUrl').value;
+            if (url) window.open(url, '_blank');
+        }
+
+        function openRawVideoInNewTab() {
+            const url = document.getElementById('generatedVideoUrl').value;
+            if (url) window.open(url, '_blank');
+        }
+
+        // Launch isolated full-screen video page with background color
+        function openFullViewerInNewTab() {
+            const activeObj = getActiveObj();
+            if (!activeObj) return;
+
+            const frame = activeObj.previewFrame || activeObj;
+            const videoUrl = activeObj.video || activeObj.url;
+            const bgColor = '#' + (frame.bgColor || '000000').replace('#', '');
+
+            const viewerHtml = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>AMPThing Motion Artwork Viewer</title>
+                    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"><\/script>
+                    <style>
+                        body { margin:0; background: ${bgColor}; display:flex; justify-content:center; align-items:center; height:100vh; overflow:hidden; }
+                        video { max-width:90vw; max-height:90vh; border-radius:12px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+                    </style>
+                </head>
+                <body>
+                    <video id="v" autoplay loop muted controls playsinline></video>
+                    <script>
+                        const v = document.getElementById('v');
+                        const src = "${videoUrl}";
+                        if (Hls.isSupported()) {
+                            const hls = new Hls();
+                            hls.loadSource(src);
+                            hls.attachMedia(v);
+                        } else {
+                            v.src = src;
+                        }
+                    <\/script>
+                </body>
+                </html>
+            `;
+
+            const win = window.open('about:blank', '_blank');
+            win.document.write(viewerHtml);
+            win.document.close();
+        }
+
+        // Helper Clipboard function
+        function copyToClipboard(text) {
+            if (!text) return;
+            const el = document.createElement('textarea');
+            el.value = text;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+            alert("Copied URL to clipboard!");
+        }
+
+        // Trigger Audio Upload
+        function triggerFileInput() {
+            document.getElementById('audioFileInput').click();
+        }
+
+        function handleFileSelect(e) {
+            const files = e.target.files;
+            if (!files.length) return;
+
+            for (let file of files) {
+                const url = URL.createObjectURL(file);
+                const title = file.name.replace(/\.[^/.]+$/, "");
+                addTrackToPlaylist(title, "Local Audio File", url, 0);
+            }
+
+            if (currentTrackIndex === -1) {
+                loadTrack(0);
+            }
+        }
+
+        // Add track object to playlist array
+        function addTrackToPlaylist(title, artist, url, duration) {
+            playlist.push({ title, artist, url, duration });
+            renderPlaylist();
+            if (playlist.length === 1 && currentTrackIndex === -1) {
+                loadTrack(0);
+            }
+        }
+
+        // Render Playlist Queue
+        function renderPlaylist(filteredList = null) {
+            const container = document.getElementById('playlistContainer');
+            const listToRender = filteredList || playlist;
+
+            if (playlist.length === 0) {
+                container.innerHTML = `
+                    <div id="emptyPlaylistMsg" class="p-8 text-center text-slate-600 text-xs">
+                        <i class="fa-solid fa-music text-3xl mb-2 block text-slate-700"></i>
+                        No audio loaded yet.<br>Click <b>Load Track</b> or drag audio files here.
+                    </div>
+                `;
+                document.getElementById('playlistCount').innerText = "0 tracks";
                 return;
             }
 
-            items.forEach(item => {
-                const attrs = item.attributes;
-                const artworkUrl = attrs.artwork?.url?.replace("{w}", "120").replace("{h}", "120") || "";
-
-                const row = document.createElement("div");
-                row.className = "result-item";
-                row.onclick = () => fetchItemDetails(item.id, type);
-
-                let subtitle = attrs.artistName || "";
-                if (attrs.releaseDate) subtitle += ` • ${attrs.releaseDate.substring(0, 4)}`;
-                if (type === "artists") subtitle = "Artist";
-                if (type === "playlists") subtitle = attrs.curatorName || "Playlist";
-
-                row.innerHTML = `
-                    <img src="${artworkUrl || 'https://via.placeholder.com/120'}" alt="${attrs.name}">
-                    <div class="result-info">
-                        <div class="item-title">${attrs.name}</div>
-                        <div class="item-sub">${subtitle}</div>
+            container.innerHTML = listToRender.map((track, idx) => {
+                const actualIndex = playlist.indexOf(track);
+                const isActive = actualIndex === currentTrackIndex;
+                return `
+                    <div onclick="loadTrack(${actualIndex})" class="p-2.5 flex items-center justify-between cursor-pointer transition ${isActive ? 'bg-cyan-950/50 text-cyan-400 border-l-2 border-cyan-400' : 'hover:bg-slate-800/50 text-slate-300'}">
+                        <div class="flex items-center space-x-3 truncate">
+                            <span class="font-mono text-xs text-slate-500 w-5">${actualIndex + 1}</span>
+                            <div class="truncate">
+                                <div class="text-xs font-medium truncate">${track.title}</div>
+                                <div class="text-[10px] text-slate-500 truncate">${track.artist}</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2 font-mono text-[11px] text-slate-500">
+                            <span>${formatTime(track.duration)}</span>
+                            <button onclick="event.stopPropagation(); removeTrack(${actualIndex})" class="hover:text-rose-400 p-1">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
                     </div>
                 `;
-                container.appendChild(row);
+            }).join('');
+
+            document.getElementById('playlistCount').innerText = `${playlist.length} track${playlist.length > 1 ? 's' : ''}`;
+        }
+
+        // Load Track by index
+        function loadTrack(index) {
+            if (index < 0 || index >= playlist.length) return;
+            currentTrackIndex = index;
+            const track = playlist[index];
+
+            audioElement.src = track.url;
+            document.getElementById('lcdTrackTitle').innerText = track.title;
+            document.getElementById('lcdArtist').innerText = track.artist;
+
+            renderPlaylist();
+
+            if (isPlaying) {
+                audioElement.play();
+            }
+        }
+
+        // Play/Pause Playback Toggle
+        function togglePlay() {
+            initAudioContext();
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            if (currentTrackIndex === -1 && playlist.length > 0) {
+                loadTrack(0);
+            }
+
+            if (isPlaying) {
+                audioElement.pause();
+                isPlaying = false;
+                document.getElementById('playIcon').className = 'fa-solid fa-play';
+                document.getElementById('lcdStatus').innerText = 'PAUSED';
+            } else {
+                audioElement.play();
+                isPlaying = true;
+                document.getElementById('playIcon').className = 'fa-solid fa-pause';
+                document.getElementById('lcdStatus').innerText = 'PLAYING';
+            }
+        }
+
+        function stopTrack() {
+            audioElement.pause();
+            audioElement.currentTime = 0;
+            isPlaying = false;
+            document.getElementById('playIcon').className = 'fa-solid fa-play';
+            document.getElementById('lcdStatus').innerText = 'STOPPED';
+        }
+
+        function nextTrack() {
+            if (playlist.length === 0) return;
+            let nextIdx = currentTrackIndex + 1;
+            if (isShuffle) {
+                nextIdx = Math.floor(Math.random() * playlist.length);
+            } else if (nextIdx >= playlist.length) {
+                nextIdx = 0;
+            }
+            loadTrack(nextIdx);
+            if (isPlaying) audioElement.play();
+        }
+
+        function prevTrack() {
+            if (playlist.length === 0) return;
+            let prevIdx = currentTrackIndex - 1;
+            if (prevIdx < 0) prevIdx = playlist.length - 1;
+            loadTrack(prevIdx);
+            if (isPlaying) audioElement.play();
+        }
+
+        function onTrackEnded() {
+            if (isRepeat) {
+                audioElement.currentTime = 0;
+                audioElement.play();
+            } else {
+                nextTrack();
+            }
+        }
+
+        // Seek Audio
+        function seekTrack(value) {
+            if (audioElement.duration) {
+                audioElement.currentTime = (value / 100) * audioElement.duration;
+            }
+        }
+
+        function updatePlaybackProgress() {
+            if (audioElement.duration) {
+                const pct = (audioElement.currentTime / audioElement.duration) * 100;
+                document.getElementById('seekSlider').value = pct;
+                document.getElementById('currentTime').innerText = formatTime(audioElement.currentTime);
+                document.getElementById('lcdTime').innerText = formatTime(audioElement.currentTime);
+            }
+        }
+
+        function setVolume(val) {
+            audioElement.volume = val;
+            document.getElementById('volumeValue').innerText = Math.round(val * 100) + '%';
+        }
+
+        function toggleMute() {
+            audioElement.muted = !audioElement.muted;
+            document.getElementById('muteIcon').className = audioElement.muted ? 'fa-solid fa-volume-xmark text-rose-400' : 'fa-solid fa-volume-high';
+        }
+
+        function toggleShuffle() {
+            isShuffle = !isShuffle;
+            document.getElementById('shuffleBtn').classList.toggle('active', isShuffle);
+        }
+
+        function toggleRepeat() {
+            isRepeat = !isRepeat;
+            document.getElementById('repeatBtn').classList.toggle('active', isRepeat);
+        }
+
+        // DSP / EQ Controls
+        function setPan(val) {
+            if (pannerNode) pannerNode.pan.value = val;
+            document.getElementById('panValue').innerText = val == 0 ? 'CENTER' : (val < 0 ? `L ${Math.abs(val)}` : `R ${val}`);
+        }
+
+        function setSpeed(val) {
+            audioElement.playbackRate = val;
+            document.getElementById('speedValue').innerText = parseFloat(val).toFixed(2) + 'x';
+        }
+
+        function setBassBoost(val) {
+            if (bassBiquad) bassBiquad.gain.value = val;
+            document.getElementById('bassValue').innerText = `+${parseFloat(val).toFixed(1)} dB`;
+        }
+
+        function updateEQBand(index, value) {
+            if (eqNodes[index]) {
+                eqNodes[index].gain.value = value;
+            }
+        }
+
+        function applyEQPreset(preset) {
+            const presets = {
+                flat: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                rock: [4, 3, 2, 0, -1, 1, 3, 4, 4, 4],
+                pop: [-1, 2, 4, 5, 3, 0, -1, 2, 3, 3],
+                dance: [6, 5, 2, 0, 0, -2, -3, -1, 4, 5],
+                vocal: [-2, -1, 1, 4, 5, 4, 2, 0, -1, -2]
+            };
+            const vals = presets[preset] || presets.flat;
+            vals.forEach((v, idx) => {
+                document.getElementById(`eqBand_${idx}`).value = v;
+                updateEQBand(idx, v);
             });
         }
 
-        async function fetchItemDetails(itemId, type) {
-            const storefront = document.getElementById("storefrontInput").value.trim() || "us";
-            
-            try {
-                const response = await fetch(`${WORKER_ENDPOINT}/v1/catalog/${storefront}/${type}/${itemId}`);
-                const data = await response.json();
-                
-                if (data.data && data.data.length > 0) {
-                    if (type === "albums") {
-                        currentActiveAlbum = data.data[0];
-                        renderAlbumDetail(data.data[0]);
-                    } else {
-                        currentActiveAlbum = null;
-                        renderGenericDetail(data.data[0], type);
+        function resetEQ() {
+            applyEQPreset('flat');
+            document.getElementById('eqPresets').value = 'flat';
+        }
+
+        function removeTrack(index) {
+            playlist.splice(index, 1);
+            if (currentTrackIndex === index) {
+                if (playlist.length > 0) loadTrack(0);
+                else stopTrack();
+            }
+            renderPlaylist();
+        }
+
+        function clearPlaylist() {
+            playlist = [];
+            currentTrackIndex = -1;
+            stopTrack();
+            renderPlaylist();
+        }
+
+        function filterPlaylist(query) {
+            const q = query.toLowerCase();
+            const filtered = playlist.filter(t => t.title.toLowerCase().includes(q) || t.artist.toLowerCase().includes(q));
+            renderPlaylist(filtered);
+        }
+
+        // Canvas Visualizer Engine
+        function initVisualizer() {
+            const canvas = document.getElementById('visualizerCanvas');
+            const ctx = canvas.getContext('2d');
+
+            function resizeCanvas() {
+                canvas.width = canvas.parentElement.clientWidth;
+                canvas.height = canvas.parentElement.clientHeight;
+            }
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+
+            function render() {
+                animFrameId = requestAnimationFrame(render);
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                if (!analyser || !isPlaying) {
+                    ctx.fillStyle = '#00ffcc22';
+                    ctx.fillRect(0, canvas.height / 2 - 1, canvas.width, 2);
+                    return;
+                }
+
+                const bufferLength = analyser.frequencyBinCount;
+                const dataArray = new Uint8Array(bufferLength);
+
+                if (visualizerMode === 'bars') {
+                    analyser.getByteFrequencyData(dataArray);
+                    const barWidth = (canvas.width / bufferLength) * 2.5;
+                    let x = 0;
+                    for (let i = 0; i < bufferLength; i++) {
+                        const barHeight = (dataArray[i] / 255) * canvas.height;
+                        const gradient = ctx.createLinearGradient(0, canvas.height, 0, 0);
+                        gradient.addColorStop(0, '#00ff66');
+                        gradient.addColorStop(0.7, '#ffb700');
+                        gradient.addColorStop(1, '#ff3366');
+                        ctx.fillStyle = gradient;
+                        ctx.fillRect(x, canvas.height - barHeight, barWidth - 1, barHeight);
+                        x += barWidth;
+                    }
+                } else if (visualizerMode === 'wave') {
+                    analyser.getByteTimeDomainData(dataArray);
+                    ctx.lineWidth = 2;
+                    ctx.strokeStyle = '#00ffcc';
+                    ctx.beginPath();
+                    const sliceWidth = canvas.width / bufferLength;
+                    let x = 0;
+                    for (let i = 0; i < bufferLength; i++) {
+                        const v = dataArray[i] / 128.0;
+                        const y = (v * canvas.height) / 2;
+                        if (i === 0) ctx.moveTo(x, y);
+                        else ctx.lineTo(x, y);
+                        x += sliceWidth;
+                    }
+                    ctx.stroke();
+                } else if (visualizerMode === 'circle') {
+                    analyser.getByteFrequencyData(dataArray);
+                    const centerX = canvas.width / 2;
+                    const centerY = canvas.height / 2;
+                    const radius = Math.min(centerX, centerY) - 20;
+
+                    for (let i = 0; i < bufferLength; i += 4) {
+                        const rad = (i / bufferLength) * Math.PI * 2;
+                        const barLen = (dataArray[i] / 255) * 25;
+                        const x1 = centerX + Math.cos(rad) * radius;
+                        const y1 = centerY + Math.sin(rad) * radius;
+                        const x2 = centerX + Math.cos(rad) * (radius + barLen);
+                        const y2 = centerY + Math.sin(rad) * (radius + barLen);
+
+                        ctx.strokeStyle = '#00ff66';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.moveTo(x1, y1);
+                        ctx.lineTo(x2, y2);
+                        ctx.stroke();
                     }
                 }
-            } catch (err) {
-                console.error(err);
-                triggerErrorToast("Failed to fetch item details", "500");
             }
+            render();
         }
 
-        function toggleEditorialNotes() {
-            const notesContainer = document.getElementById("editorialNotesContainer");
-            const btn = document.getElementById("notesToggleBtn");
-            if (notesContainer.classList.contains("expanded")) {
-                notesContainer.classList.remove("expanded");
-                btn.textContent = "More";
-            } else {
-                notesContainer.classList.add("expanded");
-                btn.textContent = "Less";
-            }
+        function setVisMode(mode) {
+            visualizerMode = mode;
         }
 
-        function renderAlbumDetail(album) {
-            const attrs = album.attributes;
-            const detailView = document.getElementById("detailView");
-            const artworkUrl = attrs.artwork?.url?.replace("{w}", "600").replace("{h}", "600") || "";
-            const tracks = album.relationships?.tracks?.data || [];
+        // Synth Engine Modal & Controller
+        function toggleAudioSynthModal() {
+            const modal = document.getElementById('synthModal');
+            modal.classList.toggle('hidden');
+            modal.classList.toggle('flex');
+        }
 
-            // Header Quality Badges with Icons + Text
-            const audioTraits = attrs.audioTraits || [];
-            const badgeItems = [];
-            
-            if (audioTraits.includes("spatial") || audioTraits.includes("atmos")) {
-                badgeItems.push(`
-                    <span class="badge-item">
-                        <img src="assets/badges/dolby.svg" class="badge-img" alt="Dolby Atmos">
-                        Dolby Atmos
-                    </span>
-                `);
-            }
-            if (audioTraits.includes("hi-res-lossless")) {
-                badgeItems.push(`
-                    <span class="badge-item">
-                        <img src="assets/badges/hires.svg" class="badge-img" alt="Hi-Res Lossless">
-                        Hi-Res Lossless
-                    </span>
-                `);
-            } else if (audioTraits.includes("lossless") || audioTraits.includes("lossy-stereo")) {
-                badgeItems.push(`
-                    <span class="badge-item">
-                        <img src="assets/badges/lossless.svg" class="badge-img" alt="Lossless">
-                        Lossless
-                    </span>
-                `);
-            }
+        function initSynthKeyboard() {
+            const keys = [
+                { note: 'C4', freq: 261.63, key: 'a' },
+                { note: 'D4', freq: 293.66, key: 's' },
+                { note: 'E4', freq: 329.63, key: 'd' },
+                { note: 'F4', freq: 349.23, key: 'f' },
+                { note: 'G4', freq: 392.00, key: 'g' },
+                { note: 'A4', freq: 440.00, key: 'h' },
+                { note: 'B4', freq: 493.88, key: 'j' },
+                { note: 'C5', freq: 523.25, key: 'k' }
+            ];
 
-            const badgesHtml = badgeItems.join(' <span class="badge-separator">•</span> ');
+            const kb = document.getElementById('keyboard');
+            kb.innerHTML = keys.map(k => `
+                <button onmousedown="playSynthTone(${k.freq})" class="flex-1 bg-slate-200 hover:bg-cyan-400 text-slate-900 font-cyber font-bold rounded-b pb-2 h-full flex flex-col justify-end items-center transition shadow-inner">
+                    <span class="text-xs uppercase">${k.note}</span>
+                    <span class="text-[10px] text-slate-500 font-mono">[${k.key.toUpperCase()}]</span>
+                </button>
+            `).join('');
 
-            // Tracklist Table Generation with Track-level Qualities
-            let tracklistRows = "";
-            tracks.forEach(track => {
-                const tAttrs = track.attributes;
-                const trackTraits = tAttrs.audioTraits || [];
-                
-                let qualitiesDisplay = [];
-                if (trackTraits.includes("spatial") || trackTraits.includes("atmos")) qualitiesDisplay.push("Dolby Atmos");
-                if (trackTraits.includes("hi-res-lossless")) qualitiesDisplay.push("Hi-Res Lossless");
-                else if (trackTraits.includes("lossless")) qualitiesDisplay.push("Lossless");
-
-                const qualitiesText = qualitiesDisplay.join(" · ") || (tAttrs.hasHLS ? "Lossless" : "");
-
-                tracklistRows += `
-                    <tr>
-                        <td class="track-name">${tAttrs.name}</td>
-                        <td class="track-qualities">${qualitiesText}</td>
-                        <td class="track-duration">${formatDuration(tAttrs.durationInMillis)}</td>
-                    </tr>
-                `;
+            window.addEventListener('keydown', (e) => {
+                if (document.getElementById('synthModal').classList.contains('hidden')) return;
+                const found = keys.find(k => k.key === e.key.toLowerCase());
+                if (found) playSynthTone(found.freq);
             });
-
-            const editorialRaw = attrs.editorialNotes?.standard || attrs.editorialNotes?.short || "";
-            let editorialHtml = "";
-            if (editorialRaw) {
-                editorialHtml = `
-                    <div class="editorial-notes" id="editorialNotesContainer">
-                        <span class="editorial-notes-text">${editorialRaw}</span>
-                        <span class="notes-toggle" id="notesToggleBtn" onclick="toggleEditorialNotes()">More</span>
-                    </div>
-                `;
-            }
-
-            detailView.innerHTML = `
-                <div class="album-header-card">
-                    <div class="artwork-container" onclick="openArtworkTool()">
-                        <img src="${artworkUrl}" alt="${attrs.name}" title="Click to open Artwork Tool">
-                    </div>
-                    <div class="meta-header">
-                        <h2>${attrs.name}</h2>
-                        <div class="artist-name">${attrs.artistName}</div>
-                        <div class="album-sub-meta">${attrs.genreNames ? attrs.genreNames[0] : ''} • ${attrs.releaseDate ? attrs.releaseDate.substring(0, 4) : ''}</div>
-                        
-                        <div class="badges-row">
-                            ${badgesHtml}
-                        </div>
-
-                        ${editorialHtml}
-                    </div>
-                </div>
-
-                <table class="tracklist">
-                    <tbody>
-                        ${tracklistRows}
-                    </tbody>
-                </table>
-            `;
         }
 
-        function renderGenericDetail(item, type) {
-            const attrs = item.attributes;
-            const detailView = document.getElementById("detailView");
-            const artworkUrl = attrs.artwork?.url?.replace("{w}", "600").replace("{h}", "600") || "";
+        function playSynthTone(freq) {
+            initAudioContext();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
 
-            detailView.innerHTML = `
-                <div class="album-header-card">
-                    <div class="artwork-container">
-                        <img src="${artworkUrl || 'https://via.placeholder.com/600'}" alt="${attrs.name}">
-                    </div>
-                    <div class="meta-header">
-                        <h2>${attrs.name}</h2>
-                        <div class="artist-name">${attrs.artistName || attrs.curatorName || ''}</div>
-                        <div class="album-sub-meta">${type.toUpperCase()}</div>
-                    </div>
-                </div>
-            `;
+            const wave = document.getElementById('synthWaveform').value;
+            const attack = parseFloat(document.getElementById('synthAttack').value);
+            const decay = parseFloat(document.getElementById('synthDecay').value);
+
+            osc.type = wave;
+            osc.frequency.value = freq;
+
+            gain.gain.setValueAtTime(0, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.4, audioCtx.currentTime + attack);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + attack + decay);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.start();
+            osc.stop(audioCtx.currentTime + attack + decay);
         }
 
-        document.getElementById("searchInput").addEventListener("keypress", (e) => {
-            if (e.key === "Enter") executeSearch();
-        });
+        // Helpers
+        function formatTime(seconds) {
+            if (isNaN(seconds)) return "00:00";
+            const m = Math.floor(seconds / 60);
+            const s = Math.floor(seconds % 60);
+            return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+        }
 
-        document.getElementById("searchTypeSelect").addEventListener("change", () => {
-            if (document.getElementById("searchInput").value.trim()) {
-                executeSearch();
+        function changeTheme(theme) {
+            const panel = document.getElementById('playerSkinPanel');
+            if (theme === 'classic') {
+                panel.className = 'bg-slate-800 border-2 border-slate-600 rounded-xl p-5 shadow-2xl relative overflow-hidden';
+            } else if (theme === 'synthwave') {
+                panel.className = 'bg-gradient-to-b from-purple-950 via-slate-900 to-pink-950 border border-pink-500/50 rounded-xl p-5 shadow-2xl relative overflow-hidden';
+            } else if (theme === 'matrix') {
+                panel.className = 'bg-black border border-emerald-500/60 rounded-xl p-5 shadow-2xl relative overflow-hidden';
+            } else {
+                panel.className = 'bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-2xl relative overflow-hidden';
             }
-        });
+        }
     </script>
 </body>
 </html>
