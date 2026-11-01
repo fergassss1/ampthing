@@ -340,7 +340,8 @@
             background-color: var(--bg-cards);
             border-radius: 16px;
             padding: 24px 28px;
-            width: 360px;
+            width: 420px;
+            max-width: 90vw;
             box-shadow: 0 16px 40px rgba(0,0,0,0.6);
             display: flex;
             flex-direction: column;
@@ -368,14 +369,6 @@
             color: var(--text-main);
         }
 
-        .artwork-section-label {
-            font-family: var(--font-branding);
-            font-size: 1.1rem;
-            font-weight: 800;
-            margin-bottom: 8px;
-            color: var(--text-main);
-        }
-
         .artwork-format-header {
             display: flex;
             justify-content: space-between;
@@ -383,6 +376,8 @@
             color: var(--text-muted);
             font-weight: 600;
             margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .artwork-item-row {
@@ -390,6 +385,9 @@
             gap: 16px;
             align-items: center;
             margin-bottom: 12px;
+            background: rgba(0, 0, 0, 0.15);
+            padding: 10px;
+            border-radius: 10px;
         }
 
         .artwork-item-row img, .artwork-item-row video {
@@ -397,6 +395,7 @@
             height: 64px;
             border-radius: 8px;
             object-fit: cover;
+            background: #000;
         }
 
         .artwork-item-meta {
@@ -413,7 +412,7 @@
 
         .artwork-item-res {
             font-size: 0.75rem;
-            color: var(--text-muted);
+            color: var(--text-main);
         }
 
         .artwork-item-limit {
@@ -421,13 +420,46 @@
             color: var(--text-muted);
         }
 
-        .artwork-item-download {
+        .artwork-actions {
             margin-left: auto;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .artwork-action-btn {
             color: var(--text-link);
             cursor: pointer;
             text-decoration: none;
             display: flex;
             align-items: center;
+            justify-content: center;
+            padding: 6px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            transition: background 0.2s;
+        }
+
+        .artwork-action-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .quality-select-wrapper {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-top: 4px;
+        }
+
+        .quality-select-wrapper select {
+            background: var(--bg-main);
+            color: var(--text-main);
+            border: 1px solid rgba(250, 255, 214, 0.2);
+            border-radius: 6px;
+            padding: 2px 6px;
+            font-family: inherit;
+            font-size: 0.75rem;
+            outline: none;
         }
 
         /* Toast Notifications */
@@ -521,51 +553,66 @@
             <!-- Static Section -->
             <div>
                 <div class="artwork-format-header">
-                    <span>STATIC</span>
-                    <span>WEBP / JPG</span>
+                    <span>STATIC ARTWORK</span>
+                    <span>JPG / WEBP</span>
                 </div>
                 <div class="artwork-item-row">
                     <img id="modalStaticImg" src="" alt="Static Cover">
                     <div class="artwork-item-meta">
-                        <div class="artwork-item-name">Static</div>
+                        <div class="artwork-item-name">Static Cover</div>
                         <div class="artwork-item-res" id="modalStaticRes">3000x3000</div>
-                        <div class="artwork-item-limit">Max. 1080p 600p</div>
+                        <div class="quality-select-wrapper">
+                            <select id="staticQualitySelect" onchange="updateStaticUrl()">
+                                <option value="3840">3840x3840 (4K)</option>
+                                <option value="3000" selected>3000x3000</option>
+                                <option value="1400">1400x1400</option>
+                                <option value="600">600x600</option>
+                            </select>
+                        </div>
                     </div>
-                    <a id="modalStaticDl" class="artwork-item-download" target="_blank" download>
-                        <span class="material-symbols-outlined">download</span>
-                    </a>
+                    <div class="artwork-actions">
+                        <a id="modalStaticOpen" class="artwork-action-btn" target="_blank" title="Open in new tab">
+                            <span class="material-symbols-outlined">open_in_new</span>
+                        </a>
+                    </div>
                 </div>
             </div>
 
             <!-- Animated Section (If Available) -->
             <div id="modalAnimatedSection" style="display: none;">
                 <div class="artwork-format-header">
-                    <span>ANIMATED</span>
-                    <span>M3U8 / MP4</span>
+                    <span>ANIMATED ARTWORK</span>
+                    <span>M3U8 / STREAM</span>
                 </div>
                 
+                <!-- Motion Square 1x1 -->
                 <div class="artwork-item-row" id="rowAnimatedSquare" style="display: none;">
-                    <video id="modalAnimSquareVid" autoplay loop muted playsinline></video>
+                    <img id="modalSquarePreview" src="" alt="Square Preview">
                     <div class="artwork-item-meta">
-                        <div class="artwork-item-name">Square</div>
-                        <div class="artwork-item-res">2160x2160</div>
-                        <div class="artwork-item-limit">Max. 1080p 600p</div>
+                        <div class="artwork-item-name">Square (1:1)</div>
+                        <div class="artwork-item-res" id="modalSquareRes">3840x3840</div>
+                        <div class="artwork-item-limit">Motion Video Stream</div>
                     </div>
-                    <a id="modalAnimSquareDl" class="artwork-item-download" target="_blank" download>
-                        <span class="material-symbols-outlined">download</span>
-                    </a>
+                    <div class="artwork-actions">
+                        <a id="modalSquareOpen" class="artwork-action-btn" target="_blank" title="Open Stream in new tab">
+                            <span class="material-symbols-outlined">open_in_new</span>
+                        </a>
+                    </div>
                 </div>
 
+                <!-- Motion Tall 3x4 -->
                 <div class="artwork-item-row" id="rowAnimatedTall" style="display: none;">
-                    <video id="modalAnimTallVid" autoplay loop muted playsinline></video>
+                    <img id="modalTallPreview" src="" alt="Tall Preview">
                     <div class="artwork-item-meta">
-                        <div class="artwork-item-name">Tall</div>
-                        <div class="artwork-item-res">2048x2732</div>
-                        <div class="artwork-item-limit">Max. 1080p 600p</div>
+                        <div class="artwork-item-name">Tall (3:4)</div>
+                        <div class="artwork-item-res" id="modalTallRes">2048x2732</div>
+                        <div class="artwork-item-limit">Motion Video Stream</div>
                     </div>
-                    <a id="modalAnimTallDl" class="artwork-item-download" target="_blank" download>
-                        <span class="material-symbols-outlined">download</span>
-                    </a>
+                    <div class="artwork-actions">
+                        <a id="modalTallOpen" class="artwork-action-btn" target="_blank" title="Open Stream in new tab">
+                            <span class="material-symbols-outlined">open_in_new</span>
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -577,6 +624,7 @@
     <script>
         const WORKER_ENDPOINT = "https://amphoreus.ejpoacc.workers.dev";
         let currentActiveAlbum = null;
+        let currentRawArtworkTemplate = "";
 
         function formatDuration(ms) {
             if (!ms) return "--:--";
@@ -603,48 +651,73 @@
             }, 5000);
         }
 
+        /* Quality selector helper for static artwork */
+        function updateStaticUrl() {
+            if (!currentRawArtworkTemplate) return;
+            const size = document.getElementById("staticQualitySelect").value;
+            const finalUrl = currentRawArtworkTemplate.replace("{w}", size).replace("{h}", size).replace("{f}", "jpg");
+            document.getElementById("modalStaticOpen").href = finalUrl;
+            document.getElementById("modalStaticRes").textContent = `${size}x${size}`;
+        }
+
         /* Modal Artwork Tool Handlers */
         function openArtworkTool() {
             if (!currentActiveAlbum) return;
             const attrs = currentActiveAlbum.attributes;
-            const rawArtworkUrl = attrs.artwork?.url || "";
+            currentRawArtworkTemplate = attrs.artwork?.url || "";
 
-            // Static 3000x3000 image resolution replacement
-            const highResImg = rawArtworkUrl.replace("{w}", "3000").replace("{h}", "3000").replace("{f}", "jpg");
-            const thumbImg = rawArtworkUrl.replace("{w}", "200").replace("{h}", "200");
-
+            // Static image setup
+            const thumbImg = currentRawArtworkTemplate.replace("{w}", "200").replace("{h}", "200");
             document.getElementById("modalStaticImg").src = thumbImg;
-            document.getElementById("modalStaticDl").href = highResImg;
-            document.getElementById("modalStaticRes").textContent = `${attrs.artwork?.width || 3000}x${attrs.artwork?.height || 3000}`;
+            updateStaticUrl();
 
-            // Check for animated artwork video assets
-            const editorialVideo = attrs.editorialVideo;
+            // Check for animated artwork video assets from editorialVideo
+            const editorialVideo = attrs.editorialVideo || {};
             const animSection = document.getElementById("modalAnimatedSection");
             const rowSquare = document.getElementById("rowAnimatedSquare");
             const rowTall = document.getElementById("rowAnimatedTall");
 
             let hasAnimated = false;
 
-            if (editorialVideo?.motionSquare?.video) {
+            // Check Square Video
+            const motionSquare = editorialVideo.motionSquareVideo1x1 || editorialVideo.motionDetailSquare;
+            if (motionSquare && motionSquare.video) {
                 hasAnimated = true;
                 rowSquare.style.display = "flex";
-                document.getElementById("modalAnimSquareVid").src = editorialVideo.motionSquare.video;
-                document.getElementById("modalAnimSquareDl").href = editorialVideo.motionSquare.video;
+                
+                const previewUrl = motionSquare.previewFrame?.url 
+                    ? motionSquare.previewFrame.url.replace("{w}", "200").replace("{h}", "200") 
+                    : thumbImg;
+                document.getElementById("modalSquarePreview").src = previewUrl;
+                document.getElementById("modalSquareOpen").href = motionSquare.video;
+                
+                const w = motionSquare.previewFrame?.width || 3840;
+                const h = motionSquare.previewFrame?.height || 3840;
+                document.getElementById("modalSquareRes").textContent = `${w}x${h}`;
             } else {
                 rowSquare.style.display = "none";
             }
 
-            if (editorialVideo?.motionDetailTall?.video) {
+            // Check Tall Video
+            const motionTall = editorialVideo.motionTallVideo3x4 || editorialVideo.motionDetailTall;
+            if (motionTall && motionTall.video) {
                 hasAnimated = true;
                 rowTall.style.display = "flex";
-                document.getElementById("modalAnimTallVid").src = editorialVideo.motionDetailTall.video;
-                document.getElementById("modalAnimTallDl").href = editorialVideo.motionDetailTall.video;
+                
+                const previewUrl = motionTall.previewFrame?.url 
+                    ? motionTall.previewFrame.url.replace("{w}", "200").replace("{h}", "266") 
+                    : thumbImg;
+                document.getElementById("modalTallPreview").src = previewUrl;
+                document.getElementById("modalTallOpen").href = motionTall.video;
+
+                const w = motionTall.previewFrame?.width || 2048;
+                const h = motionTall.previewFrame?.height || 2732;
+                document.getElementById("modalTallRes").textContent = `${w}x${h}`;
             } else {
                 rowTall.style.display = "none";
             }
 
             animSection.style.display = hasAnimated ? "block" : "none";
-
             document.getElementById("artworkToolModal").classList.add("active");
         }
 
