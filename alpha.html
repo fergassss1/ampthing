@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apple Music AMP Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @font-face {
+            font-family: 'SF Pro';
+            src: url('/assets/font/SF-Pro.ttf') format('truetype');
+            font-weight: 100 900;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        * {
+            font-family: 'SF Pro', system-ui, -apple-system, BlinkMacSystemFont, sans-serif !important;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #18181b; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #52525b; }
+        .glass-panel { background: rgba(24, 24, 27, 0.85); backdrop-filter: blur(12px); }
+        .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    </style>
+</head>
+<body class="bg-zinc-950 text-zinc-100 min-h-screen flex flex-col antialiased selection:bg-rose-500 selection:text-white">
+
+    <!-- Header -->
+    <header class="border-b border-zinc-800/80 glass-panel sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-rose-600 to-pink-500 flex items-center justify-center shadow-lg shadow-rose-950/50">
+                    <i class="fa-solid fa-music text-white text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold tracking-tight text-white leading-none text-lg">AMP Explorer</h1>
+                    <span class="text-xs text-zinc-400">Apple Music Dual-Engine Asset Extractor</span>
+                </div>
+            </div>
+
+            <button id="openConfigBtn" class="flex items-center gap-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white px-3.5 py-1.5 rounded-lg border border-zinc-800 text-xs font-medium transition shadow-sm">
+                <i class="fa-solid fa-gear text-zinc-400"></i>
+                <span>API Settings</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 flex-grow w-full space-y-6">
+
+        <!-- Search Bar -->
+        <div class="glass-panel border border-zinc-800/80 rounded-2xl p-4 shadow-xl space-y-3">
+            <div class="flex flex-col sm:flex-row gap-2.5">
+                <!-- Region Storefront Code Input -->
+                <div class="relative w-28 flex-shrink-0">
+                    <input type="text" id="storefrontInput" placeholder="us" maxlength="5" value="us"
+                           class="w-full bg-zinc-900/90 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm text-center text-rose-400 font-mono font-bold uppercase placeholder-zinc-600 focus:outline-none focus:border-rose-500 transition">
+                    <span class="absolute -top-2 left-2 px-1 bg-zinc-950 text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Region</span>
+                </div>
+
+                <div class="relative flex-grow">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 text-sm"></i>
+                    <input type="text" id="searchInput" placeholder="Paste Apple Music album/playlist URL or album text search..." 
+                           class="w-full bg-zinc-900/90 border border-zinc-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 transition">
+                </div>
+                
+                <button id="searchBtn" class="bg-rose-600 hover:bg-rose-500 text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition shadow-lg shadow-rose-950/40 flex items-center justify-center gap-2 flex-shrink-0">
+                    <span>Search</span>
+                    <i class="fa-solid fa-arrow-right text-xs"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Status Alert Banner -->
+        <div id="statusMessage" class="hidden text-xs p-3.5 rounded-xl border flex items-center gap-3 transition"></div>
+
+        <!-- Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- Left Column: Search Results -->
+            <section class="lg:col-span-4 space-y-3">
+                <div class="flex items-center justify-between px-1">
+                    <h2 class="text-xs font-bold uppercase tracking-wider text-zinc-400">Catalog Results</h2>
+                    <span id="resultsCount" class="text-xs text-zinc-500">0 items</span>
+                </div>
+                
+                <div id="resultsContainer" class="space-y-2 max-h-[75vh] overflow-y-auto pr-1 custom-scrollbar">
+                    <div class="text-center py-12 border border-dashed border-zinc-800 rounded-2xl">
+                        <i class="fa-solid fa-compact-disc text-3xl text-zinc-700 mb-2 animate-spin-slow"></i>
+                        <p class="text-xs text-zinc-500">Search catalog or paste URL to extract assets</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Column: Interactive Apple Music Web Player Layout -->
+            <section class="lg:col-span-8 space-y-3">
+                <div id="visualCardView" class="bg-zinc-900/90 border border-zinc-800/80 rounded-2xl p-6 shadow-2xl relative overflow-hidden min-h-[550px]">
+                    <div id="visualCardContent" class="flex flex-col items-center justify-center text-zinc-500 min-h-[500px] space-y-3">
+                        <i class="fa-brands fa-apple text-5xl text-zinc-700"></i>
+                        <p class="text-xs">Select an item to load player UI</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Modals -->
+    <div id="artworkModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-xl w-full p-6 space-y-5 shadow-2xl relative">
+            <div class="flex justify-between items-center border-b border-zinc-800 pb-3">
+                <h3 class="font-bold text-base text-white">Artwork & Asset Extractor</h3>
+                <button class="close-modal-btn text-zinc-400 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="space-y-2">
+                <h4 class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Official UI Color Tokens</h4>
+                <div id="paletteSwatchesContainer" class="flex flex-wrap gap-2 pt-1"></div>
+            </div>
+            <div class="space-y-2">
+                <h4 class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Direct Media Streams & Image Links</h4>
+                <div id="artworkLinksContainer" class="space-y-2.5 text-xs max-h-[45vh] overflow-y-auto custom-scrollbar"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Config Modal -->
+    <div id="configModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl relative">
+            <div class="flex justify-between items-center border-b border-zinc-800 pb-3">
+                <h3 class="font-bold text-lg text-white">Proxy & API Settings</h3>
+                <button class="close-modal-btn text-zinc-400 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-300 mb-1">Cloudflare Worker Proxy Domain</label>
+                    <input type="text" id="proxyUrlInput" value="https://amp2.ejpoacc.workers.dev" 
+                           class="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-2.5 text-xs text-zinc-200 focus:outline-none focus:border-rose-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-300 mb-1">Apple Music Developer JWT Token (System 2 Fallback)</label>
+                    <textarea id="tokenInput" rows="5" placeholder="Bearer eyJhbGciOi..." 
+                              class="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-2.5 text-xs text-zinc-200 focus:outline-none focus:border-rose-500"></textarea>
+                </div>
+            </div>
+            <div class="flex justify-end gap-2.5 pt-2">
+                <button id="cancelModalBtn" class="px-4 py-2 rounded-xl text-xs font-medium text-zinc-300 hover:bg-zinc-800 border border-zinc-800">Cancel</button>
+                <button id="saveTokenBtn" class="px-5 py-2 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white shadow-lg">Save Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Logic Script -->
+    <script>
+        let storefront = "us";
+        let currentAudio = null;
+        let activeHls = null;
+        let currentPayload = null;
+
+        const searchInput = document.getElementById("searchInput");
+        const storefrontInput = document.getElementById("storefrontInput");
+        const searchBtn = document.getElementById("searchBtn");
+        const resultsContainer = document.getElementById("resultsContainer");
+        const resultsCount = document.getElementById("resultsCount");
+        const statusMessage = document.getElementById("statusMessage");
+        const visualCardContent = document.getElementById("visualCardContent");
+
+        const artworkModal = document.getElementById("artworkModal");
+        const configModal = document.getElementById("configModal");
+
+        storefrontInput.value = localStorage.getItem("amusic_storefront") || "us";
+        document.getElementById("proxyUrlInput").value = localStorage.getItem("amusic_proxy") || "https://amp2.ejpoacc.workers.dev";
+        document.getElementById("tokenInput").value = localStorage.getItem("amusic_token") || "";
+
+        document.querySelectorAll('.close-modal-btn').forEach(btn => {
+            btn.onclick = () => { artworkModal.classList.add('hidden'); configModal.classList.add('hidden'); };
+        });
+
+        document.getElementById("openConfigBtn").onclick = () => configModal.classList.remove('hidden');
+        document.getElementById("cancelModalBtn").onclick = () => configModal.classList.add('hidden');
+
+        document.getElementById("saveTokenBtn").onclick = () => {
+            localStorage.setItem("amusic_token", document.getElementById("tokenInput").value.trim());
+            localStorage.setItem("amusic_proxy", document.getElementById("proxyUrlInput").value.trim().replace(/\/$/, ""));
+            localStorage.setItem("amusic_storefront", storefrontInput.value.trim().toLowerCase());
+            configModal.classList.add('hidden');
+            showStatus("API Settings Saved!", "success");
+        };
+
+        function showStatus(msg, type = "info") {
+            statusMessage.innerHTML = `
+                <i class="fa-solid ${type === 'error' ? 'fa-circle-exclamation text-red-400' : type === 'success' ? 'fa-circle-check text-emerald-400' : 'fa-circle-info text-sky-400'}"></i>
+                <span>${msg}</span>
+            `;
+            statusMessage.className = `text-xs p-3.5 rounded-xl border flex items-center gap-3 transition ${
+                type === 'error' ? 'bg-red-950/40 border-red-900/60 text-red-200' :
+                type === 'success' ? 'bg-emerald-950/40 border-emerald-900/60 text-emerald-200' :
+                'bg-zinc-900 border-zinc-800 text-zinc-300'
+            }`;
+            statusMessage.classList.remove("hidden");
+        }
+
+        // Dual-Engine Fetcher: System 1 (Ben Dodson via worker) with System 2 (Homemade Worker Fallback)
+        async function fetchCatalogData() {
+            const query = searchInput.value.trim();
+            const userStorefront = storefrontInput.value.trim().toLowerCase() || "us";
+            const proxyUrl = localStorage.getItem("amusic_proxy") || "https://amp2.ejpoacc.workers.dev";
+            const devToken = localStorage.getItem("amusic_token");
+
+            if (!query) return;
+
+            if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+            if (activeHls) { activeHls.destroy(); activeHls = null; }
+
+            resultsContainer.innerHTML = `<div class="text-center py-10"><i class="fa-solid fa-spinner animate-spin text-rose-500 text-2xl"></i></div>`;
+            showStatus(`Querying catalog (${userStorefront.toUpperCase()})...`, "info");
+
+            const isUrl = query.includes("music.apple.com");
+
+            // -----------------------------------------------------------------
+            // SYSTEM 1: Ben Dodson Engine via Worker Proxy (/bendodson/*)
+            // -----------------------------------------------------------------
+            try {
+                showStatus("Attempting System 1 (Ben Dodson Engine)...", "info");
+                const endpoint = isUrl ? "/bendodson/v1/artwork/apple-music/lookup" : "/bendodson/v1/artwork/apple-music/search";
+                const payload = isUrl ? { url: query } : { query: query, storefront: userStorefront };
+
+                const res = await fetch(`${proxyUrl}${endpoint}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    if (!data.error && (data.data || data.albums || data.thumb || data.title)) {
+                        showStatus("Loaded via System 1 (Ben Dodson)", "success");
+                        const normalized = normalizeBenDodsonPayload(data);
+                        renderResults(normalized.data);
+                        if (normalized.data.length > 0) renderAppleMusicUI(normalized.data[0]);
+                        return;
+                    }
+                }
+            } catch (err) {
+                console.warn("System 1 (Ben Dodson) failed. Falling back to System 2...", err);
+            }
+
+            // -----------------------------------------------------------------
+            // SYSTEM 2: Homemade Cloudflare Worker Proxy Fallback
+            // -----------------------------------------------------------------
+            showStatus("System 1 failed. Activating System 2 (Cloudflare Worker Fallback)...", "info");
+
+            if (!devToken) {
+                configModal.classList.remove("hidden");
+                showStatus("Uh oh! System 2 active, but Developer Token is missing in API Settings.", "error");
+                return;
+            }
+
+            try {
+                let appleEndpoint = "";
+                if (isUrl) {
+                    const urlObj = new URL(query);
+                    const pathSegments = urlObj.pathname.split('/').filter(Boolean);
+                    const urlStorefront = pathSegments[0] || userStorefront;
+                    const urlType = pathSegments[1];
+                    const urlId = pathSegments[pathSegments.length - 1].split('?')[0];
+                    appleEndpoint = `/v1/catalog/${urlStorefront}/${urlType}/${urlId}?include=editorialVideo,artists,albums,tracks`;
+                } else {
+                    appleEndpoint = `/v1/catalog/${userStorefront}/search?term=${encodeURIComponent(query)}&types=albums&limit=24&include=editorialVideo`;
+                }
+
+                const fallbackRes = await fetch(`${proxyUrl}${appleEndpoint}`, {
+                    headers: { "Authorization": devToken.startsWith("Bearer ") ? devToken : `Bearer ${devToken}` }
+                });
+
+                if (!fallbackRes.ok) throw new Error(`HTTP Error: ${fallbackRes.status}`);
+
+                const fallbackData = await fallbackRes.json();
+                const items = fallbackData.data || fallbackData.results?.albums?.data || [];
+
+                if (items.length === 0) {
+                    throw new Error("No items found.");
+                }
+
+                showStatus("Loaded via System 2 (Cloudflare Worker)", "success");
+                renderResults(items);
+                renderAppleMusicUI(items[0]);
+
+            } catch (err) {
+                showStatus(`Uh oh! An error occurred. Check if you misspelled the storefront code ('${userStorefront}') or check your API token.`, "error");
+                resultsContainer.innerHTML = `<div class="text-center py-8 text-zinc-500 text-xs">Request failed for storefront: <span class="font-mono text-rose-400 font-bold">${userStorefront}</span></div>`;
+            }
+        }
+
+        function normalizeBenDodsonPayload(data) {
+            if (data.data?.albums || Array.isArray(data.albums)) {
+                const list = data.data?.albums || data.albums;
+                return {
+                    data: list.map(item => ({
+                        id: item.id || item.url,
+                        type: "albums",
+                        attributes: {
+                            name: item.title,
+                            artistName: item.artist,
+                            artwork: { 
+                                url: (item.large || item.thumb || item.artwork600 || '').replace(/\/\d+x\d+/, '{w}x{h}'),
+                                width: item.width || 3000,
+                                height: item.height || 3000
+                            },
+                            url: item.url,
+                            releaseDate: item.releaseDate
+                        }
+                    }))
+                };
+            }
+            const singleObj = data.data || data;
+            return { 
+                data: [{
+                    id: singleObj.id || singleObj.url,
+                    type: singleObj.type || "albums",
+                    attributes: {
+                        name: singleObj.title,
+                        artistName: singleObj.artist,
+                        artwork: {
+                            url: (singleObj.large || singleObj.thumb || '').replace(/\/\d+x\d+/, '{w}x{h}'),
+                            width: singleObj.width || 3000,
+                            height: singleObj.height || 3000,
+                            bgColor: singleObj.bgColor,
+                            textColor1: singleObj.textColor1,
+                            textColor2: singleObj.textColor2
+                        },
+                        editorialNotes: { standard: singleObj.metadata },
+                        tracks: singleObj.tracks || [],
+                        releaseDate: singleObj.releaseDate
+                    },
+                    relationships: { editorialVideo: singleObj.editorialVideo || [] }
+                }] 
+            };
+        }
+
+        function renderResults(items) {
+            resultsContainer.innerHTML = "";
+            resultsCount.textContent = `${items.length} items`;
+
+            items.forEach(item => {
+                const attr = item.attributes || {};
+                const artworkUrl = attr.artwork?.url ? attr.artwork.url.replace('{w}', '200').replace('{h}', '200') : '';
+
+                const card = document.createElement("div");
+                card.className = "bg-zinc-900 border border-zinc-800/80 rounded-xl p-2.5 flex gap-3 items-center hover:border-zinc-700 transition cursor-pointer group";
+                card.innerHTML = `
+                    ${artworkUrl ? `<img src="${artworkUrl}" class="w-12 h-12 rounded-lg object-cover bg-zinc-950 flex-shrink-0 shadow">` : `<div class="w-12 h-12 rounded-lg bg-zinc-800 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-music text-zinc-600"></i></div>`}
+                    <div class="flex-grow min-w-0">
+                        <h4 class="font-bold text-xs text-white truncate group-hover:text-rose-400 transition">${attr.name || 'Untitled'}</h4>
+                        <p class="text-xs text-zinc-400 truncate">${attr.artistName || attr.curatorName || 'Unknown Artist'}</p>
+                    </div>
+                `;
+                card.onclick = () => renderAppleMusicUI(item);
+                resultsContainer.appendChild(card);
+            });
+        }
+
+        function renderAppleMusicUI(item) {
+            currentPayload = item;
+            if (activeHls) { activeHls.destroy(); activeHls = null; }
+
+            const attr = item.attributes || {};
+            const artwork = attr.artwork || {};
+            const artwork600 = artwork.url ? artwork.url.replace('{w}', '600').replace('{h}', '600') : '';
+            const year = attr.releaseDate ? attr.releaseDate.split('-')[0] : '2026';
+            const tracks = item.relationships?.tracks?.data || attr.tracks || [];
+
+            visualCardContent.innerHTML = `
+                <div class="w-full flex flex-col space-y-6">
+                    <div class="flex flex-col sm:flex-row gap-6 items-center sm:items-start">
+                        <div id="artworkToolContainer" class="relative w-48 h-48 sm:w-52 sm:h-52 flex-shrink-0 rounded-2xl overflow-hidden shadow-2xl bg-zinc-950 cursor-pointer group">
+                            ${artwork600 ? `<img src="${artwork600}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center"><i class="fa-solid fa-music text-3xl text-zinc-700"></i></div>`}
+                            <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition p-2 text-center">
+                                <i class="fa-solid fa-download text-lg text-white mb-1"></i>
+                                <span class="text-xs font-bold text-white">Extract Artwork & Assets</span>
+                            </div>
+                        </div>
+                        <div class="flex-grow space-y-2 text-center sm:text-left min-w-0">
+                            <h2 class="text-2xl sm:text-3xl font-bold text-white tracking-tight leading-snug truncate">${attr.name || 'Untitled'}</h2>
+                            <h3 class="text-base font-semibold text-rose-400 truncate">${attr.artistName || 'Unknown Artist'}</h3>
+                            <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2 text-xs text-zinc-400 font-medium">
+                                <span>${year}</span>
+                                <span>•</span>
+                                <span class="inline-flex items-center gap-1 text-zinc-300"><img src="/assets/badges/lossless.svg" class="w-4 h-4 inline-block" onerror="this.style.display='none'"> Lossless</span>
+                                <span>•</span>
+                                <span class="inline-flex items-center gap-1 text-zinc-300"><img src="/assets/badges/dolby.svg" class="w-4 h-4 inline-block" onerror="this.style.display='none'"> Dolby Atmos</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById("artworkToolContainer").onclick = () => {
+                const swatchesContainer = document.getElementById("paletteSwatchesContainer");
+                const linksContainer = document.getElementById("artworkLinksContainer");
+                swatchesContainer.innerHTML = "";
+                linksContainer.innerHTML = "";
+
+                const nativeW = artwork.width || 3000;
+                const nativeH = artwork.height || 3000;
+                const maxResUrl = artwork.url ? artwork.url.replace('{w}', nativeW).replace('{h}', nativeH) : '';
+
+                const card = document.createElement("div");
+                card.className = "bg-zinc-950 border border-zinc-800 rounded-xl p-3 space-y-1";
+                card.innerHTML = `
+                    <div class="flex items-center justify-between font-semibold text-zinc-300">
+                        <span>High Resolution (${nativeW}x${nativeH}px)</span>
+                        <button class="copy-btn text-rose-400 hover:text-rose-300 text-xs flex items-center gap-1"><i class="fa-regular fa-copy"></i> Copy</button>
+                    </div>
+                    <p class="text-zinc-500 font-mono text-[11px] truncate">${maxResUrl}</p>
+                `;
+                card.querySelector('.copy-btn').onclick = () => {
+                    navigator.clipboard.writeText(maxResUrl);
+                    showStatus("Copied max-resolution artwork link!", "success");
+                };
+                linksContainer.appendChild(card);
+                artworkModal.classList.remove('hidden');
+            };
+        }
+
+        searchBtn.onclick = fetchCatalogData;
+        searchInput.onkeypress = (e) => { if (e.key === "Enter") fetchCatalogData(); };
+    </script>
+</body>
+</html>
