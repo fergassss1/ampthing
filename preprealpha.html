@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -390,7 +391,7 @@
             border-radius: 10px;
         }
 
-        .artwork-item-row img, .artwork-item-row video {
+        .artwork-item-row img {
             width: 64px;
             height: 64px;
             border-radius: 8px;
@@ -413,11 +414,6 @@
         .artwork-item-res {
             font-size: 0.75rem;
             color: var(--text-main);
-        }
-
-        .artwork-item-limit {
-            font-size: 0.75rem;
-            color: var(--text-muted);
         }
 
         .artwork-actions {
@@ -530,10 +526,19 @@
                 <input type="text" id="storefrontInput" class="storefront-selector" value="us" maxlength="5">
             </div>
             
-            <div class="search-input-box">
+            <!-- Mobile-friendly form container to trigger mobile keyboard search action -->
+            <form id="searchForm" class="search-input-box" action="javascript:void(0);">
                 <span class="material-symbols-outlined" style="color: var(--text-muted); font-size: 18px;">search</span>
-                <input type="text" id="searchInput" placeholder="type or paste a link">
-            </div>
+                <input 
+                    type="search" 
+                    id="searchInput" 
+                    placeholder="type or paste a link" 
+                    enterkeyhint="search" 
+                    autocomplete="off" 
+                    autocorrect="off" 
+                    spellcheck="false"
+                >
+            </form>
 
             <div class="search-results-list" id="searchResultsList"></div>
         </div>
@@ -679,7 +684,7 @@
 
             let hasAnimated = false;
 
-            // Check Square Video
+            // Check Square Video (1x1)
             const motionSquare = editorialVideo.motionSquareVideo1x1 || editorialVideo.motionDetailSquare;
             if (motionSquare && motionSquare.video) {
                 hasAnimated = true;
@@ -698,7 +703,7 @@
                 rowSquare.style.display = "none";
             }
 
-            // Check Tall Video
+            // Check Tall Video (3x4)
             const motionTall = editorialVideo.motionTallVideo3x4 || editorialVideo.motionDetailTall;
             if (motionTall && motionTall.video) {
                 hasAnimated = true;
@@ -724,6 +729,28 @@
         function closeArtworkTool(e) {
             if (!e || e.target.id === "artworkToolModal" || e.target.classList.contains("close-btn")) {
                 document.getElementById("artworkToolModal").classList.remove("active");
+            }
+        }
+
+        function handleSearchTrigger() {
+            const searchInput = document.getElementById("searchInput");
+            const val = searchInput.value.trim();
+            if (!val) return;
+
+            // Dismiss mobile soft keyboard
+            searchInput.blur();
+
+            // Direct Apple Music URL / ID detection
+            const urlMatch = val.match(/\/album\/[^\/]+\/(id\d+|\d+)/) || val.match(/(id\d+|\d+)$/);
+            if (val.startsWith("http") && urlMatch) {
+                const id = urlMatch[1].replace("id", "");
+                const sfMatch = val.match(/\/([a-z]{2})\/album\//);
+                if (sfMatch) {
+                    document.getElementById("storefrontInput").value = sfMatch[1];
+                }
+                fetchItemDetails(id, "albums");
+            } else {
+                executeSearch();
             }
         }
 
@@ -931,13 +958,37 @@
             `;
         }
 
-        document.getElementById("searchInput").addEventListener("keypress", (e) => {
-            if (e.key === "Enter") executeSearch();
-        });
+        /* Global Search Event Listeners */
+        document.addEventListener("DOMContentLoaded", () => {
+            const searchForm = document.getElementById("searchForm");
+            const searchInput = document.getElementById("searchInput");
+            const searchTypeSelect = document.getElementById("searchTypeSelect");
 
-        document.getElementById("searchTypeSelect").addEventListener("change", () => {
-            if (document.getElementById("searchInput").value.trim()) {
-                executeSearch();
+            // Form submit event for mobile soft keyboard "Go" / "Search" & desktop Enter
+            if (searchForm) {
+                searchForm.addEventListener("submit", (e) => {
+                    e.preventDefault();
+                    handleSearchTrigger();
+                });
+            }
+
+            // Keydown fallback for physical keyboard Enter
+            if (searchInput) {
+                searchInput.addEventListener("keydown", (e) => {
+                    if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleSearchTrigger();
+                    }
+                });
+            }
+
+            // Re-trigger search when dropdown category changes
+            if (searchTypeSelect) {
+                searchTypeSelect.addEventListener("change", () => {
+                    if (searchInput && searchInput.value.trim()) {
+                        handleSearchTrigger();
+                    }
+                });
             }
         });
     </script>
