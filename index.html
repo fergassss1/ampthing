@@ -39,7 +39,7 @@
                 </div>
                 <div>
                     <h1 class="font-bold tracking-tight text-white leading-none text-lg">AMP Explorer</h1>
-                    <span class="text-xs text-zinc-400">Apple Music Visualizer & Asset Inspector</span>
+                    <span class="text-xs text-zinc-400">Apple Music Asset & Metadata Extractor</span>
                 </div>
             </div>
 
@@ -53,12 +53,12 @@
     <!-- Main Container -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 flex-grow w-full space-y-6">
 
-        <!-- Search Controls -->
+        <!-- Search Bar -->
         <div class="glass-panel border border-zinc-800/80 rounded-2xl p-4 shadow-xl space-y-3">
             <div class="flex flex-col sm:flex-row gap-2.5">
                 <div class="relative flex-grow">
                     <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 text-sm"></i>
-                    <input type="text" id="searchInput" placeholder="Paste Apple Music album URL or search term..." 
+                    <input type="text" id="searchInput" placeholder="Paste Apple Music URL or search term..." 
                            class="w-full bg-zinc-900/90 border border-zinc-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 transition">
                 </div>
                 
@@ -86,68 +86,105 @@
             <!-- Left Column: Search Results -->
             <section class="lg:col-span-4 space-y-3">
                 <div class="flex items-center justify-between px-1">
-                    <h2 class="text-xs font-bold uppercase tracking-wider text-zinc-400">Results</h2>
+                    <h2 class="text-xs font-bold uppercase tracking-wider text-zinc-400">Catalog Results</h2>
                     <span id="resultsCount" class="text-xs text-zinc-500">0 items</span>
                 </div>
                 
                 <div id="resultsContainer" class="space-y-2 max-h-[75vh] overflow-y-auto pr-1 custom-scrollbar">
                     <div class="text-center py-12 border border-dashed border-zinc-800 rounded-2xl">
                         <i class="fa-solid fa-compact-disc text-3xl text-zinc-700 mb-2 animate-spin-slow"></i>
-                        <p class="text-xs text-zinc-500">Search for albums or tracks to render Apple Music view</p>
+                        <p class="text-xs text-zinc-500">Search catalog to extract assets & metadata</p>
                     </div>
                 </div>
             </section>
 
-            <!-- Right Column: Visual Apple Music Player UI -->
+            <!-- Right Column: Interactive Apple Music Web Player Layout -->
             <section class="lg:col-span-8 space-y-3">
                 <div id="visualCardView" class="bg-zinc-900/90 border border-zinc-800/80 rounded-2xl p-6 shadow-2xl relative overflow-hidden min-h-[550px]">
                     <div id="visualCardContent" class="flex flex-col items-center justify-center text-zinc-500 min-h-[500px] space-y-3">
                         <i class="fa-brands fa-apple text-5xl text-zinc-700"></i>
-                        <p class="text-xs">Select an item from the results list to render player</p>
+                        <p class="text-xs">Select an item to load player UI</p>
                     </div>
                 </div>
             </section>
         </div>
     </main>
 
-    <!-- Animated Artwork Links Modal -->
+    <!-- 1. Artwork & Motion Extractor Modal -->
     <div id="artworkModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl relative">
+        <div class="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-xl w-full p-6 space-y-5 shadow-2xl relative">
             <div class="flex justify-between items-center border-b border-zinc-800 pb-3">
-                <h3 class="font-bold text-base text-white">Motion Artwork Direct Asset Links</h3>
-                <button id="closeArtworkModalBtn" class="text-zinc-400 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+                <h3 class="font-bold text-base text-white">Artwork & Asset Extractor</h3>
+                <button class="close-modal-btn text-zinc-400 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
             </div>
 
-            <div id="artworkLinksContainer" class="space-y-3 text-xs"></div>
+            <!-- Palette Swatches Section -->
+            <div class="space-y-2">
+                <h4 class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Official UI Color Tokens</h4>
+                <div id="paletteSwatchesContainer" class="flex flex-wrap gap-2 pt-1"></div>
+            </div>
+
+            <!-- Asset Direct Links -->
+            <div class="space-y-2">
+                <h4 class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Direct Media Streams & Image Links</h4>
+                <div id="artworkLinksContainer" class="space-y-2.5 text-xs max-h-[45vh] overflow-y-auto custom-scrollbar"></div>
+            </div>
         </div>
     </div>
 
-    <!-- Description Modal -->
-    <div id="descModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl relative">
+    <!-- 2. Editorial Notes Modal -->
+    <div id="editorialModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-2xl relative">
             <div class="flex justify-between items-center border-b border-zinc-800 pb-3">
-                <h3 class="font-bold text-base text-white">Album Review</h3>
-                <button id="closeDescModalBtn" class="text-zinc-400 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+                <h3 class="font-bold text-base text-white">Editorial Description Tool</h3>
+                <button class="close-modal-btn text-zinc-400 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <p id="fullDescText" class="text-xs text-zinc-300 leading-relaxed max-h-[60vh] overflow-y-auto custom-scrollbar"></p>
-            <button id="copyDescBtn" class="w-full bg-zinc-800 hover:bg-zinc-700 text-white font-semibold py-2 rounded-xl text-xs transition">
-                <i class="fa-regular fa-copy mr-1.5"></i> Copy Description
+            
+            <div class="space-y-3 max-h-[60vh] overflow-y-auto custom-scrollbar pr-1">
+                <div id="taglineBlock" class="hidden bg-zinc-950 p-3 rounded-xl border border-zinc-800 space-y-1">
+                    <span class="text-[10px] font-bold uppercase text-rose-400">Headline Tagline</span>
+                    <p id="taglineText" class="text-xs text-white font-semibold"></p>
+                </div>
+                <div id="shortDescBlock" class="hidden bg-zinc-950 p-3 rounded-xl border border-zinc-800 space-y-1">
+                    <span class="text-[10px] font-bold uppercase text-zinc-400">Short Summary</span>
+                    <p id="shortDescText" class="text-xs text-zinc-300 leading-relaxed"></p>
+                </div>
+                <div id="fullDescBlock" class="hidden bg-zinc-950 p-3 rounded-xl border border-zinc-800 space-y-1">
+                    <span class="text-[10px] font-bold uppercase text-zinc-400">Full Editorial Review</span>
+                    <p id="fullDescText" class="text-xs text-zinc-300 leading-relaxed"></p>
+                </div>
+            </div>
+
+            <button id="copyFullDescBtn" class="w-full bg-rose-600 hover:bg-rose-500 text-white font-semibold py-2.5 rounded-xl text-xs transition">
+                <i class="fa-regular fa-copy mr-1.5"></i> Copy Complete Text
             </button>
         </div>
     </div>
 
-    <!-- Raw Metadata Modal -->
+    <!-- 3. Track Detail Extractor Modal -->
+    <div id="trackModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl relative">
+            <div class="flex justify-between items-center border-b border-zinc-800 pb-3">
+                <h3 class="font-bold text-base text-white">Track Inspector</h3>
+                <button class="close-modal-btn text-zinc-400 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div id="trackModalDetails" class="space-y-3 text-xs"></div>
+        </div>
+    </div>
+
+    <!-- 4. Raw API Metadata Modal -->
     <div id="metaModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
         <div class="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-2xl w-full p-6 space-y-4 shadow-2xl relative">
             <div class="flex justify-between items-center border-b border-zinc-800 pb-3">
-                <h3 class="font-bold text-base text-white">Raw API Metadata</h3>
-                <button id="closeMetaModalBtn" class="text-zinc-400 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+                <h3 class="font-bold text-base text-white">Raw Catalog Payload JSON</h3>
+                <button class="close-modal-btn text-zinc-400 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="bg-zinc-950 border border-zinc-800 rounded-xl p-4 text-xs overflow-x-auto max-h-[60vh] custom-scrollbar">
                 <pre id="metaJsonViewer" class="text-rose-300/90 leading-relaxed"></pre>
             </div>
             <button id="copyMetaBtn" class="w-full bg-rose-600 hover:bg-rose-500 text-white font-semibold py-2.5 rounded-xl text-xs transition">
-                <i class="fa-regular fa-copy mr-1.5"></i> Copy Metadata JSON
+                <i class="fa-regular fa-copy mr-1.5"></i> Copy Metadata Payload
             </button>
         </div>
     </div>
@@ -156,8 +193,8 @@
     <div id="configModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
         <div class="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl relative">
             <div class="flex justify-between items-center border-b border-zinc-800 pb-3">
-                <h3 class="font-bold text-lg text-white">Proxy & Token Settings</h3>
-                <button id="closeModalBtn" class="text-zinc-400 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+                <h3 class="font-bold text-lg text-white">Proxy & API Settings</h3>
+                <button class="close-modal-btn text-zinc-400 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
             </div>
 
             <div class="space-y-4">
@@ -171,7 +208,6 @@
                     <label class="block text-xs font-semibold text-zinc-300 mb-1">Apple Music Developer JWT Token</label>
                     <textarea id="tokenInput" rows="5" placeholder="Bearer eyJhbGciOi..." 
                               class="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-2.5 text-xs text-zinc-200 focus:outline-none focus:border-rose-500"></textarea>
-                    <p class="text-xs text-zinc-500 mt-1">Ensure the token includes the exact <code>Bearer </code> prefix.</p>
                 </div>
             </div>
 
@@ -182,12 +218,12 @@
         </div>
     </div>
 
-    <!-- Application Logic -->
+    <!-- Main Logic -->
     <script>
         let storefront = "us";
         let currentAudio = null;
         let activeHls = null;
-        let currentItemPayload = null;
+        let currentPayload = null;
 
         // DOM Elements
         const searchInput = document.getElementById("searchInput");
@@ -200,45 +236,36 @@
 
         // Modals
         const artworkModal = document.getElementById("artworkModal");
-        const closeArtworkModalBtn = document.getElementById("closeArtworkModalBtn");
-        const artworkLinksContainer = document.getElementById("artworkLinksContainer");
-
-        const descModal = document.getElementById("descModal");
-        const closeDescModalBtn = document.getElementById("closeDescModalBtn");
-        const fullDescText = document.getElementById("fullDescText");
-        const copyDescBtn = document.getElementById("copyDescBtn");
-
+        const editorialModal = document.getElementById("editorialModal");
+        const trackModal = document.getElementById("trackModal");
         const metaModal = document.getElementById("metaModal");
-        const closeMetaModalBtn = document.getElementById("closeMetaModalBtn");
-        const metaJsonViewer = document.getElementById("metaJsonViewer");
-        const copyMetaBtn = document.getElementById("copyMetaBtn");
-
         const configModal = document.getElementById("configModal");
+
         const openConfigBtn = document.getElementById("openConfigBtn");
-        const closeModalBtn = document.getElementById("closeModalBtn");
         const cancelModalBtn = document.getElementById("cancelModalBtn");
         const saveTokenBtn = document.getElementById("saveTokenBtn");
         const tokenInput = document.getElementById("tokenInput");
-        const proxyUrlInput = document.getElementById("proxyUrlInput");
+        const proxyUrlInput = document.getItem ? null : document.getElementById("proxyUrlInput");
 
-        // App Init
+        // Load Stored Settings
         tokenInput.value = localStorage.getItem("amusic_token") || "";
-        proxyUrlInput.value = localStorage.getItem("amusic_proxy") || "https://amp.ejpoacc.workers.dev";
+        document.getElementById("proxyUrlInput").value = localStorage.getItem("amusic_proxy") || "https://amp.ejpoacc.workers.dev";
 
-        // Modal Controllers
-        const toggleModal = (modal, show) => modal.classList.toggle("hidden", !show);
-        openConfigBtn.onclick = () => toggleModal(configModal, true);
-        closeModalBtn.onclick = () => toggleModal(configModal, false);
-        cancelModalBtn.onclick = () => toggleModal(configModal, false);
-        closeArtworkModalBtn.onclick = () => toggleModal(artworkModal, false);
-        closeDescModalBtn.onclick = () => toggleModal(descModal, false);
-        closeMetaModalBtn.onclick = () => toggleModal(metaModal, false);
+        // Global Modal Close Handlers
+        document.querySelectorAll('.close-modal-btn').forEach(btn => {
+            btn.onclick = () => {
+                [artworkModal, editorialModal, trackModal, metaModal, configModal].forEach(m => m.classList.add('hidden'));
+            };
+        });
+
+        openConfigBtn.onclick = () => configModal.classList.remove('hidden');
+        cancelModalBtn.onclick = () => configModal.classList.add('hidden');
 
         saveTokenBtn.onclick = () => {
             localStorage.setItem("amusic_token", tokenInput.value.trim());
-            localStorage.setItem("amusic_proxy", proxyUrlInput.value.trim().replace(/\/$/, ""));
-            toggleModal(configModal, false);
-            showStatus("Settings saved successfully!", "success");
+            localStorage.setItem("amusic_proxy", document.getElementById("proxyUrlInput").value.trim().replace(/\/$/, ""));
+            configModal.classList.add('hidden');
+            showStatus("API Configuration saved!", "success");
         };
 
         function showStatus(msg, type = "info") {
@@ -259,8 +286,8 @@
             const proxyUrl = localStorage.getItem("amusic_proxy") || "https://amp.ejpoacc.workers.dev";
 
             if (!token) {
-                toggleModal(configModal, true);
-                throw new Error("Missing developer token. Please set your token in Settings.");
+                configModal.classList.remove('hidden');
+                throw new Error("Missing developer token. Please set your token in API Settings.");
             }
 
             const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
@@ -272,10 +299,7 @@
                 }
             });
 
-            if (!response.ok) {
-                throw new Error(`API HTTP Error: ${response.status} (${response.statusText})`);
-            }
-
+            if (!response.ok) throw new Error(`API Error: ${response.status} (${response.statusText})`);
             return await response.json();
         }
 
@@ -288,7 +312,7 @@
             if (activeHls) { activeHls.destroy(); activeHls = null; }
 
             resultsContainer.innerHTML = `<div class="text-center py-10"><i class="fa-solid fa-spinner animate-spin text-rose-500 text-2xl"></i></div>`;
-            showStatus("Querying Apple Music API...", "info");
+            showStatus("Querying catalog...", "info");
 
             try {
                 let endpoint;
@@ -308,66 +332,52 @@
                 const items = data.data || data.results?.[type]?.data || [];
                 renderResults(items);
                 
-                if (items.length > 0) {
-                    renderAppleMusicUI(items[0]);
-                }
-
-                showStatus(`Successfully loaded ${items.length} item(s)`, "success");
+                if (items.length > 0) renderAppleMusicUI(items[0]);
+                showStatus(`Loaded ${items.length} item(s)`, "success");
 
             } catch (err) {
                 showStatus(err.message, "error");
-                resultsContainer.innerHTML = `<div class="text-center py-8 text-zinc-500 text-xs">Failed to load results.</div>`;
+                resultsContainer.innerHTML = `<div class="text-center py-8 text-zinc-500 text-xs">Failed to load search results.</div>`;
             }
         }
 
-        function playPreviewTrack(url, playBtn) {
+        function playAudioPreview(url) {
             if (currentAudio) {
                 currentAudio.pause();
-                if (currentAudio.src === url) {
-                    currentAudio = null;
-                    if (playBtn) playBtn.innerHTML = `<i class="fa-solid fa-play mr-2"></i> Play`;
-                    return;
-                }
+                if (currentAudio.src === url) { currentAudio = null; return; }
             }
-
             currentAudio = new Audio(url);
             currentAudio.play();
-            if (playBtn) playBtn.innerHTML = `<i class="fa-solid fa-pause mr-2"></i> Pause`;
-
-            currentAudio.onended = () => {
-                if (playBtn) playBtn.innerHTML = `<i class="fa-solid fa-play mr-2"></i> Play`;
-                currentAudio = null;
-            };
         }
 
-        // Render Apple Music View
+        // Render Main Visual Card
         function renderAppleMusicUI(item) {
-            currentItemPayload = item;
+            currentPayload = item;
             if (activeHls) { activeHls.destroy(); activeHls = null; }
 
             const attr = item.attributes || {};
-            const artworkUrl = attr.artwork ? attr.artwork.url.replace('{w}', '600').replace('{h}', '600') : '';
+            const artwork = attr.artwork || {};
+            const artwork5000 = artwork.url ? artwork.url.replace('{w}', '5000').replace('{h}', '5000') : '';
+            const artwork600 = artwork.url ? artwork.url.replace('{w}', '600').replace('{h}', '600') : '';
+            
             const year = attr.releaseDate ? attr.releaseDate.split('-')[0] : '2026';
-            const genre = attr.genreNames?.[0] || '';
             const editorialVideo = item.relationships?.editorialVideo?.data || attr.editorialVideo || [];
 
-            // Find animated artwork variants
             let squareMotionUrl = "";
             let tallMotionUrl = "";
 
             if (Array.isArray(editorialVideo)) {
                 editorialVideo.forEach(vid => {
-                    const videoUrl = vid.attributes?.motionDetailSquare?.video || vid.attributes?.video;
-                    const tallUrl = vid.attributes?.motionDetailTall?.video;
-                    if (videoUrl && !squareMotionUrl) squareMotionUrl = videoUrl;
-                    if (tallUrl && !tallMotionUrl) tallMotionUrl = tallUrl;
+                    const sq = vid.attributes?.motionDetailSquare?.video || vid.attributes?.video;
+                    const tl = vid.attributes?.motionDetailTall?.video;
+                    if (sq && !squareMotionUrl) squareMotionUrl = sq;
+                    if (tl && !tallMotionUrl) tallMotionUrl = tl;
                 });
             }
 
             const tracks = item.relationships?.tracks?.data || [];
-            const isLossless = attr.audioTraits?.includes("lossless") || true;
-            const isDolby = attr.audioTraits?.includes("spatial") || true;
-            const description = attr.editorialNotes?.standard || attr.editorialNotes?.short || "";
+            const notes = attr.editorialNotes || {};
+            const description = notes.standard || notes.short || "";
 
             visualCardContent.innerHTML = `
                 <div class="w-full flex flex-col space-y-6">
@@ -375,50 +385,44 @@
                     <!-- Header Section -->
                     <div class="flex flex-col sm:flex-row gap-6 items-center sm:items-start">
                         
-                        <!-- Artwork / Motion Video -->
-                        <div id="artworkContainer" class="relative w-48 h-48 sm:w-52 sm:h-52 flex-shrink-0 rounded-2xl overflow-hidden shadow-2xl bg-zinc-950 cursor-pointer group">
+                        <!-- Clickable Artwork Extractor Tool -->
+                        <div id="artworkToolContainer" class="relative w-48 h-48 sm:w-52 sm:h-52 flex-shrink-0 rounded-2xl overflow-hidden shadow-2xl bg-zinc-950 cursor-pointer group">
                             ${squareMotionUrl ? `
                                 <video id="motionVideo" class="w-full h-full object-cover" autoplay loop muted playsinline></video>
-                                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
-                                    <span class="text-xs font-semibold text-white bg-zinc-900/80 px-3 py-1.5 rounded-full border border-zinc-700">
-                                        <i class="fa-solid fa-film mr-1.5"></i> Motion Links
-                                    </span>
-                                </div>
                             ` : `
-                                ${artworkUrl ? `<img src="${artworkUrl}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center"><i class="fa-solid fa-music text-3xl text-zinc-700"></i></div>`}
+                                ${artwork600 ? `<img src="${artwork600}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center"><i class="fa-solid fa-music text-3xl text-zinc-700"></i></div>`}
                             `}
+                            <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition p-2 text-center">
+                                <i class="fa-solid fa-download text-lg text-white mb-1"></i>
+                                <span class="text-xs font-bold text-white">Extract Artwork & Motion</span>
+                            </div>
                         </div>
 
-                        <!-- Album Info -->
+                        <!-- Album Info & Audio Badges -->
                         <div class="flex-grow space-y-2 text-center sm:text-left min-w-0">
                             <h2 class="text-2xl sm:text-3xl font-bold text-white tracking-tight leading-snug truncate">${attr.name || 'Untitled'}</h2>
                             <h3 class="text-base font-semibold text-rose-400 truncate">${attr.artistName || 'Unknown Artist'}</h3>
                             
-                            <!-- Badges -->
                             <div class="flex items-center justify-center sm:justify-start gap-2 text-xs text-zinc-400 font-medium">
-                                <span>${item.type === 'albums' ? 'EP' : 'Single'}</span>
+                                <span>${item.type === 'albums' ? 'EP' : 'Track'}</span>
                                 <span>•</span>
                                 <span>${year}</span>
                                 
-                                ${isLossless ? `
-                                    <span>•</span>
-                                    <span class="inline-flex items-center gap-1 text-zinc-300">
-                                        <img src="/assets/badges/lossless.svg" class="w-4 h-4 inline-block" onerror="this.remove()"> Lossless
-                                    </span>
-                                ` : ''}
+                                <span>•</span>
+                                <span class="inline-flex items-center gap-1 text-zinc-300">
+                                    <img src="/assets/badges/lossless.svg" class="w-4 h-4 inline-block" onerror="this.style.display='none'"> Lossless
+                                </span>
 
-                                ${isDolby ? `
-                                    <span>•</span>
-                                    <span class="inline-flex items-center gap-1 text-zinc-300">
-                                        <img src="/assets/badges/dolby.svg" class="w-4 h-4 inline-block" onerror="this.remove()"> Dolby Atmos
-                                    </span>
-                                ` : ''}
+                                <span>•</span>
+                                <span class="inline-flex items-center gap-1 text-zinc-300">
+                                    <img src="/assets/badges/dolby.svg" class="w-4 h-4 inline-block" onerror="this.style.display='none'"> Dolby Atmos
+                                </span>
                             </div>
 
-                            <!-- Controls -->
+                            <!-- Player Controls -->
                             <div class="flex items-center justify-center sm:justify-start gap-2.5 pt-3">
                                 <button id="mainPlayBtn" class="bg-white hover:bg-zinc-200 text-black font-bold px-7 py-2.5 rounded-full text-xs transition shadow-lg flex items-center">
-                                    <i class="fa-solid fa-play mr-2"></i> Play
+                                    <i class="fa-solid fa-play mr-2"></i> Preview
                                 </button>
                                 <button class="bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 w-9 h-9 rounded-full flex items-center justify-center border border-zinc-700/60 transition">
                                     <i class="fa-solid fa-shuffle text-xs"></i>
@@ -430,127 +434,225 @@
                         </div>
                     </div>
 
-                    <!-- Editorial Description (Truncated) -->
+                    <!-- Clickable Editorial Info Tool -->
                     ${description ? `
-                        <div class="bg-zinc-950/60 border border-zinc-800/60 rounded-xl p-3.5 space-y-1">
+                        <div id="editorialToolBtn" class="bg-zinc-950/60 border border-zinc-800/60 rounded-xl p-3.5 space-y-1 hover:border-zinc-700 transition cursor-pointer group">
                             <p class="text-xs text-zinc-300 line-clamp-2 leading-relaxed">${description.replace(/<[^>]*>?/gm, '')}</p>
-                            <button id="readMoreDescBtn" class="text-xs text-rose-400 font-semibold hover:underline">...more</button>
+                            <span class="text-xs text-rose-400 font-semibold group-hover:underline inline-block">Click for Full Review & Notes...</span>
                         </div>
                     ` : ''}
 
-                    <!-- Tracklist -->
+                    <!-- Clickable Tracklist Extractor Tool -->
                     <div class="space-y-1 pt-2 border-t border-zinc-800/80">
                         ${tracks.length > 0 ? tracks.map((track, idx) => {
                             const trAttr = track.attributes || {};
                             const duration = trAttr.durationInMillis ? `${Math.floor(trAttr.durationInMillis / 60000)}:${Math.floor((trAttr.durationInMillis % 60000) / 1000).toString().padStart(2, '0')}` : '';
                             return `
-                                <div class="px-3 py-2.5 flex items-center justify-between text-xs rounded-xl hover:bg-zinc-800/50 transition cursor-pointer group" onclick="playPreviewTrack('${trAttr.previews?.[0]?.url || ''}')">
+                                <div class="track-row-btn px-3 py-2.5 flex items-center justify-between text-xs rounded-xl hover:bg-zinc-800/60 transition cursor-pointer group" data-idx="${idx}">
                                     <div class="flex items-center gap-3 min-w-0">
                                         <span class="text-zinc-500 font-medium w-4">${trAttr.trackNumber || idx + 1}</span>
                                         <span class="font-semibold text-white truncate group-hover:text-rose-400 transition">${trAttr.name || 'Track'}</span>
                                     </div>
                                     <div class="flex items-center gap-4">
                                         <span class="text-zinc-500">${duration}</span>
-                                        <i class="fa-solid fa-ellipsis text-zinc-500 hover:text-white"></i>
+                                        <i class="fa-solid fa-circle-info text-zinc-500 hover:text-white"></i>
                                     </div>
                                 </div>
                             `;
                         }).join('') : `
-                            <div class="px-3 py-2.5 flex items-center justify-between text-xs rounded-xl hover:bg-zinc-800/50 transition cursor-pointer" onclick="playPreviewTrack('${attr.previews?.[0]?.url || ''}')">
+                            <div class="track-row-btn px-3 py-2.5 flex items-center justify-between text-xs rounded-xl hover:bg-zinc-800/60 transition cursor-pointer group" data-idx="0">
                                 <div class="flex items-center gap-3 min-w-0">
                                     <span class="text-zinc-500 font-medium w-4">1</span>
-                                    <span class="font-semibold text-white truncate">${attr.name}</span>
+                                    <span class="font-semibold text-white truncate group-hover:text-rose-400 transition">${attr.name}</span>
                                 </div>
-                                <span class="text-zinc-500">${attr.durationInMillis ? `${Math.floor(attr.durationInMillis / 60000)}:${Math.floor((attr.durationInMillis % 60000) / 1000).toString().padStart(2, '0')}` : ''}</span>
+                                <i class="fa-solid fa-circle-info text-zinc-500 hover:text-white"></i>
                             </div>
                         `}
                     </div>
 
-                    <!-- Footer Details & Metadata Button -->
+                    <!-- Bottom Metadata Action Button -->
                     <div class="flex items-center justify-between pt-4 border-t border-zinc-800/80 text-xs text-zinc-500">
                         <span>${attr.releaseDate || year}</span>
-                        <button id="openMetaBtn" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-semibold px-4 py-2 rounded-xl text-xs transition border border-zinc-700/60">
-                            <i class="fa-solid fa-code mr-1.5"></i> Metadata
+                        <button id="openMetaBtn" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-semibold px-4 py-2 rounded-xl text-xs transition border border-zinc-700/60 flex items-center gap-2">
+                            <i class="fa-solid fa-code"></i> Copy Metadata JSON
                         </button>
                     </div>
                 </div>
             `;
 
-            // HLS Video Init
+            // Setup HLS Stream if motion exists
             if (squareMotionUrl) {
                 const vid = document.getElementById("motionVideo");
                 if (Hls.isSupported()) {
                     activeHls = new Hls();
                     activeHls.loadSource(squareMotionUrl);
                     activeHls.attachMedia(vid);
-                } else if (vid.canPlayType('application/vnd.apple.mpegurl')) {
+                } else if (vid && vid.canPlayType('application/vnd.apple.mpegurl')) {
                     vid.src = squareMotionUrl;
                 }
             }
 
-            // Bind Artwork Modal Click
-            const artContainer = document.getElementById("artworkContainer");
-            if (artContainer && squareMotionUrl) {
-                artContainer.onclick = () => renderArtworkLinks(squareMotionUrl, tallMotionUrl);
+            // Bind 1. Artwork Tool Click
+            document.getElementById("artworkToolContainer").onclick = () => {
+                openArtworkExtractorModal(artwork, squareMotionUrl, tallMotionUrl);
+            };
+
+            // Bind 2. Editorial Info Tool Click
+            const edBtn = document.getElementById("editorialToolBtn");
+            if (edBtn) {
+                edBtn.onclick = () => openEditorialNotesModal(notes);
             }
 
-            // Description Click
-            const readMoreDescBtn = document.getElementById("readMoreDescBtn");
-            if (readMoreDescBtn) {
-                readMoreDescBtn.onclick = () => {
-                    fullDescText.textContent = description.replace(/<[^>]*>?/gm, '');
-                    toggleModal(descModal, true);
+            // Bind 3. Track Detail Tool Clicks
+            document.querySelectorAll('.track-row-btn').forEach(row => {
+                row.onclick = () => {
+                    const idx = row.getAttribute('data-idx');
+                    const selectedTrack = tracks[idx] || item;
+                    openTrackDetailModal(selectedTrack);
                 };
-            }
+            });
 
-            // Metadata Modal Click
-            const openMetaBtn = document.getElementById("openMetaBtn");
-            if (openMetaBtn) {
-                openMetaBtn.onclick = () => {
-                    metaJsonViewer.textContent = JSON.stringify(currentItemPayload, null, 2);
-                    toggleModal(metaModal, true);
-                };
-            }
+            // Bind 4. Metadata Click
+            document.getElementById("openMetaBtn").onclick = () => {
+                document.getElementById("metaJsonViewer").textContent = JSON.stringify(currentPayload, null, 2);
+                metaModal.classList.remove('hidden');
+            };
 
-            // Main Play Click
+            // Main Play Preview Button
             const mainPlayBtn = document.getElementById("mainPlayBtn");
             if (mainPlayBtn && attr.previews?.[0]?.url) {
-                mainPlayBtn.onclick = () => playPreviewTrack(attr.previews[0].url, mainPlayBtn);
+                mainPlayBtn.onclick = () => playAudioPreview(attr.previews[0].url);
             }
         }
 
-        // Animated Artwork Link Generator
-        function renderArtworkLinks(squareM3u8, tallM3u8) {
-            artworkLinksContainer.innerHTML = "";
+        // 1. Open Artwork Extractor Modal
+        function openArtworkExtractorModal(artwork, squareM3u8, tallM3u8) {
+            const swatchesContainer = document.getElementById("paletteSwatchesContainer");
+            const linksContainer = document.getElementById("artworkLinksContainer");
+            swatchesContainer.innerHTML = "";
+            linksContainer.innerHTML = "";
 
+            // Render Official Hex Palette Swatches
+            const colors = [
+                { label: 'Background', hex: artwork.bgColor },
+                { label: 'Text 1', hex: artwork.textColor1 },
+                { label: 'Text 2', hex: artwork.textColor2 },
+                { label: 'Text 3', hex: artwork.textColor3 },
+                { label: 'Text 4', hex: artwork.textColor4 }
+            ];
+
+            colors.forEach(c => {
+                if (!c.hex) return;
+                const fullHex = `#${c.hex}`;
+                const btn = document.createElement("button");
+                btn.className = "flex items-center gap-2 bg-zinc-950 border border-zinc-800 hover:border-zinc-700 px-3 py-1.5 rounded-xl text-xs transition";
+                btn.innerHTML = `
+                    <span class="w-3.5 h-3.5 rounded-full border border-white/20" style="background:${fullHex}"></span>
+                    <span class="font-mono text-zinc-300">${fullHex}</span>
+                `;
+                btn.onclick = () => {
+                    navigator.clipboard.writeText(fullHex);
+                    showStatus(`Copied ${c.label} hex: ${fullHex}`, "success");
+                };
+                swatchesContainer.appendChild(btn);
+            });
+
+            // Render High-Res Image & Motion Links
+            const artwork5000 = artwork.url ? artwork.url.replace('{w}', '5000').replace('{h}', '5000') : '';
             const links = [
-                { label: "Square Master (.m3u8)", url: squareM3u8 },
-                { label: "Square MP4 (.mp4)", url: squareM3u8 ? squareM3u8.replace(/\.m3u8$/, '-.mp4') : '' },
-                { label: "Tall Master (.m3u8)", url: tallM3u8 || squareM3u8?.replace('Square', 'Tall') },
-                { label: "Tall MP4 (.mp4)", url: tallM3u8 ? tallM3u8.replace(/\.m3u8$/, '-.mp4') : squareM3u8?.replace('Square', 'Tall').replace(/\.m3u8$/, '-.mp4') }
+                { label: "High-Res Artwork (5000x5000px)", url: artwork5000 },
+                { label: "Square Master Stream (.m3u8)", url: squareM3u8 },
+                { label: "Square Motion Video (.mp4)", url: squareM3u8 ? squareM3u8.replace(/\.m3u8$/, '-.mp4') : '' },
+                { label: "Tall Master Stream (.m3u8)", url: tallM3u8 || squareM3u8?.replace('Square', 'Tall') },
+                { label: "Tall Motion Video (.mp4)", url: tallM3u8 ? tallM3u8.replace(/\.m3u8$/, '-.mp4') : squareM3u8?.replace('Square', 'Tall').replace(/\.m3u8$/, '-.mp4') }
             ];
 
             links.forEach(item => {
                 if (!item.url) return;
-                const row = document.createElement("div");
-                row.className = "bg-zinc-950 border border-zinc-800 rounded-xl p-3 space-y-1.5";
-                row.innerHTML = `
-                    <div class="flex items-center justify-between text-zinc-300 font-semibold">
+                const card = document.createElement("div");
+                card.className = "bg-zinc-950 border border-zinc-800 rounded-xl p-3 space-y-1";
+                card.innerHTML = `
+                    <div class="flex items-center justify-between font-semibold text-zinc-300">
                         <span>${item.label}</span>
-                        <button class="copy-link-btn text-rose-400 hover:text-rose-300 text-xs flex items-center gap-1">
+                        <button class="copy-btn text-rose-400 hover:text-rose-300 text-xs flex items-center gap-1">
                             <i class="fa-regular fa-copy"></i> Copy
                         </button>
                     </div>
                     <p class="text-zinc-500 font-mono text-[11px] truncate">${item.url}</p>
                 `;
-                row.querySelector('.copy-link-btn').onclick = () => {
+                card.querySelector('.copy-btn').onclick = () => {
                     navigator.clipboard.writeText(item.url);
                     showStatus(`Copied ${item.label}!`, "success");
                 };
-                artworkLinksContainer.appendChild(row);
+                linksContainer.appendChild(card);
             });
 
-            toggleModal(artworkModal, true);
+            artworkModal.classList.remove('hidden');
+        }
+
+        // 2. Open Editorial Notes Modal
+        function openEditorialNotesModal(notes) {
+            const taglineBlock = document.getElementById("taglineBlock");
+            const shortBlock = document.getElementById("shortDescBlock");
+            const fullBlock = document.getElementById("fullDescBlock");
+
+            const taglineText = document.getElementById("taglineText");
+            const shortText = document.getElementById("shortDescText");
+            const fullText = document.getElementById("fullDescText");
+
+            taglineBlock.classList.toggle('hidden', !notes.tagline);
+            shortBlock.classList.toggle('hidden', !notes.short);
+            fullBlock.classList.toggle('hidden', !notes.standard);
+
+            if (notes.tagline) taglineText.textContent = notes.tagline.replace(/<[^>]*>?/gm, '');
+            if (notes.short) shortText.textContent = notes.short.replace(/<[^>]*>?/gm, '');
+            if (notes.standard) fullText.textContent = notes.standard.replace(/<[^>]*>?/gm, '');
+
+            document.getElementById("copyFullDescBtn").onclick = () => {
+                const textToCopy = `${notes.tagline ? notes.tagline + '\n\n' : ''}${notes.standard || notes.short || ''}`.replace(/<[^>]*>?/gm, '');
+                navigator.clipboard.writeText(textToCopy);
+                showStatus("Editorial notes copied!", "success");
+            };
+
+            editorialModal.classList.remove('hidden');
+        }
+
+        // 3. Open Track Detail Extractor Modal
+        function openTrackDetailModal(trackItem) {
+            const container = document.getElementById("trackModalDetails");
+            const attr = trackItem.attributes || {};
+            const previewUrl = attr.previews?.[0]?.url || '';
+
+            container.innerHTML = `
+                <div class="bg-zinc-950 border border-zinc-800 rounded-xl p-4 space-y-2">
+                    <h4 class="font-bold text-white text-sm">${attr.name || 'Track Title'}</h4>
+                    <p class="text-zinc-400 text-xs">${attr.artistName || ''}</p>
+                    <div class="pt-2 space-y-1.5 border-t border-zinc-800 text-[11px]">
+                        <p class="text-zinc-400"><span class="text-zinc-500 font-semibold">ISRC Code:</span> ${attr.isrc || 'N/A'}</p>
+                        <p class="text-zinc-400"><span class="text-zinc-500 font-semibold">Duration:</span> ${attr.durationInMillis ? attr.durationInMillis + ' ms' : 'N/A'}</p>
+                        <p class="text-zinc-400"><span class="text-zinc-500 font-semibold">Composers:</span> ${attr.composerName || 'N/A'}</p>
+                    </div>
+                </div>
+
+                ${previewUrl ? `
+                    <div class="bg-zinc-950 border border-zinc-800 rounded-xl p-3 flex items-center justify-between">
+                        <span class="text-xs font-semibold text-zinc-300">Audio Preview Stream</span>
+                        <button id="copyTrackPreviewBtn" class="bg-rose-600 hover:bg-rose-500 text-white font-semibold px-3 py-1.5 rounded-lg text-xs transition">
+                            <i class="fa-regular fa-copy mr-1"></i> Copy Preview URL
+                        </button>
+                    </div>
+                ` : ''}
+            `;
+
+            const copyBtn = document.getElementById("copyTrackPreviewBtn");
+            if (copyBtn && previewUrl) {
+                copyBtn.onclick = () => {
+                    navigator.clipboard.writeText(previewUrl);
+                    showStatus("Track preview URL copied!", "success");
+                };
+            }
+
+            trackModal.classList.remove('hidden');
         }
 
         function renderResults(items) {
@@ -558,7 +660,7 @@
             resultsCount.textContent = `${items.length} items`;
 
             if (!items.length) {
-                resultsContainer.innerHTML = `<div class="text-center py-8 text-zinc-500 text-xs">No matching items found.</div>`;
+                resultsContainer.innerHTML = `<div class="text-center py-8 text-zinc-500 text-xs">No matching catalog items found.</div>`;
                 return;
             }
 
@@ -582,14 +684,9 @@
             });
         }
 
-        // Copy Event Handlers
-        copyDescBtn.onclick = () => {
-            navigator.clipboard.writeText(fullDescText.textContent);
-            showStatus("Album description copied!", "success");
-        };
-
-        copyMetaBtn.onclick = () => {
-            navigator.clipboard.writeText(metaJsonViewer.textContent);
+        // Copy Raw JSON Button Event
+        document.getElementById("copyMetaBtn").onclick = () => {
+            navigator.clipboard.writeText(document.getElementById("metaJsonViewer").textContent);
             showStatus("Metadata JSON copied!", "success");
         };
 
